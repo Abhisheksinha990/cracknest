@@ -55,16 +55,25 @@ const ResumeAnalyzer = () => {
       setIsUploading(true);
       setTimeout(() => {
         setResults({
-          overallScore: 88,
-          atsParseRate: "94%",
-          brevityScore: "90%",
-          summary: "Strong resume with clear technical achievements, quantitative metrics, and well-organized section hierarchy.",
-          keySkillsFound: ["React", "Python", "FastAPI", "SQL", "REST APIs", "Git", "Tailwind CSS"],
-          missingKeywords: ["CI/CD Pipelines", "Docker Containerization", "Unit Testing / PyTest"],
+          score: 88,
+          breakdown: {
+            formatting: 92,
+            keywords: 85,
+            impact: 88,
+            brevity: 90
+          },
+          formatErrors: [
+            "Consider adding a 2-line executive summary at the top of your resume.",
+            "Ensure bullet points consistently start with strong technical action verbs."
+          ],
           suggestions: [
             "Quantify results in bullet points (e.g. 'Improved API response latency by 35%').",
             "Add Docker and CI/CD tools to the Skills section to boost ATS parsing rate.",
             "Ensure bullet points start with strong action verbs (e.g. Architected, Engineered, Optimized)."
+          ],
+          weakTechStack: [
+            { tech: "Docker & Containerization", current: "Basic", requirement: "Essential for modern cloud deployments" },
+            { tech: "CI/CD & Automation", current: "Intermediate", requirement: "Required for continuous integration" }
           ]
         });
         setIsUploading(false);
@@ -299,7 +308,7 @@ const ResumeAnalyzer = () => {
                   </p>
                   
                   <div className="grid grid-cols-2 gap-4">
-                    {Object.entries(results.breakdown).map(([key, value]) => (
+                    {Object.entries(results.breakdown || {}).map(([key, value]) => (
                       <div key={key}>
                         <div className="flex justify-between text-xs mb-1">
                           <span className="text-zinc-400 capitalize">{key}</span>

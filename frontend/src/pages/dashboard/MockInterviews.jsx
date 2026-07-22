@@ -164,9 +164,36 @@ const MockInterviews = () => {
     setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
     setIsLoading(true);
 
-    try {
-      const chat = chatRef.current;
-      const result = await chat.sendMessage(userMessage);
+    if (!apiKey || !chatRef.current) {
+      setTimeout(() => {
+        const nextCount = questionCount + 1;
+        setQuestionCount(nextCount);
+        
+        if (nextCount > 3) {
+          setMessages(prev => [...prev, { 
+            role: 'model', 
+            text: `Excellent effort! We have completed your mock interview for ${role} at ${company}.\n\nReview your final evaluation report below for detailed feedback and rating.` 
+          }]);
+          setFinalFeedback({
+            rating: 8.5,
+            feedback: `Strong performance! You demonstrated technical clarity and problem-solving skills for the ${role} role at ${company}.`,
+            improvements: ["Practice explaining edge cases and memory constraints explicitly.", "Structure behavioral answers using the STAR format."],
+            weakest_area: "System Scalability & Edge Cases"
+          });
+        } else {
+          const sampleQuestions = [
+            `Solid response! Now for the next question: How do you handle concurrency, race conditions, or state synchronization in a high-traffic production application?`,
+            `Great explanation! Let's talk system design: If you were architecting a scalable notification service for ${company}, how would you design the messaging queue and database layer?`
+          ];
+          setMessages(prev => [...prev, { 
+            role: 'model', 
+            text: sampleQuestions[(nextCount - 2) % sampleQuestions.length] 
+          }]);
+        }
+        setIsLoading(false);
+      }, 800);
+      return;
+    }
       let text = result.response.text();
       
       if (text.includes("INTERVIEW_COMPLETE")) {
