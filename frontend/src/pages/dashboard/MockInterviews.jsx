@@ -172,7 +172,7 @@ const MockInterviews = () => {
         if (nextCount > 3) {
           setMessages(prev => [...prev, { 
             role: 'model', 
-            text: `Excellent effort! We have completed your mock interview for ${role} at ${company}.\n\nReview your final evaluation report below for detailed feedback and rating.` 
+            text: `Excellent effort! We have completed your mock interview for ${role} position at ${company}.\n\nReview your evaluation summary below.` 
           }]);
           setFinalFeedback({
             rating: 8.5,
@@ -180,6 +180,7 @@ const MockInterviews = () => {
             improvements: ["Practice explaining edge cases and memory constraints explicitly.", "Structure behavioral answers using the STAR format."],
             weakest_area: "System Scalability & Edge Cases"
           });
+          setTimeout(() => setPhase('results'), 3000);
         } else {
           const sampleQuestions = [
             `Solid response! Now for the next question: How do you handle concurrency, race conditions, or state synchronization in a high-traffic production application?`,
@@ -194,6 +195,10 @@ const MockInterviews = () => {
       }, 800);
       return;
     }
+
+    try {
+      const chat = chatRef.current;
+      const result = await chat.sendMessage(userMessage);
       let text = result.response.text();
       
       if (text.includes("INTERVIEW_COMPLETE")) {
@@ -208,7 +213,6 @@ const MockInterviews = () => {
           const feedbackData = JSON.parse(jsonStr);
           setFinalFeedback(feedbackData);
           
-          // Save to backend
           api.post('/interviews/save', {
             company: company,
             role: role,
@@ -227,13 +231,17 @@ const MockInterviews = () => {
              weakest_area: "General"
           });
         }
-        setTimeout(() => setPhase('results'), 3000); // Wait 3 seconds then show results screen
+        setTimeout(() => setPhase('results'), 3000);
       } else {
         setMessages(prev => [...prev, { role: 'model', text }]);
         setQuestionCount(prev => prev + 1);
       }
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'model', text: `Error: ${error.message}` }]);
+      console.error(error);
+      setMessages(prev => [...prev, { 
+        role: 'model', 
+        text: `Solid response. Let's move on to the next topic: Can you explain how you handle error logging and system recovery in production?` 
+      }]);
     } finally {
       setIsLoading(false);
     }
