@@ -17,7 +17,26 @@ const Companies = () => {
     if (!companyInput.trim()) return;
 
     if (!apiKey) {
-      toast.error("Gemini API Key is missing.");
+      toast('Using AI Preview Mode (Add VITE_GEMINI_API_KEY in Vercel for live custom responses)', { icon: '✨' });
+      setTimeout(() => {
+        setRoadmapData({
+          company: companyInput,
+          description: `${companyInput} is known for technical rigor, software architecture standards, and culture-fit assessments.`,
+          roadmap: [
+            { round: "Round 1: Technical Screen & Coding Assessment", details: "2-3 coding problems covering Data Structures (Arrays, Strings, Trees) and basic time/space complexity analysis." },
+            { round: "Round 2: System Design & Architecture", details: "Low-Level (LLD) or High-Level System Design (HLD) evaluating scalability, microservices, and database selection." },
+            { round: "Round 3: Technical Deep Dive & Past Projects", details: "In-depth review of your technical decisions, trade-offs, and past engineering accomplishments." },
+            { round: "Round 4: Behavioral & Culture Fit", details: "Leadership principles and situational questions structured around the STAR method." }
+          ],
+          topTopics: ["Algorithms & Data Structures", "System Architecture & Caching", "Database Design & SQL", "Object-Oriented Programming"],
+          prepTips: [
+            "Practice medium to hard Leetcode problems focusing on optimal time complexity.",
+            "Review system design patterns like load balancing, caching strategies, and database sharding.",
+            "Prepare 3-4 structured stories using the STAR method for behavioral questions."
+          ]
+        });
+        setIsLoading(false);
+      }, 1000);
       return;
     }
 

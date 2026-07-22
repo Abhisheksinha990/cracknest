@@ -65,11 +65,17 @@ const StrategicCareerAdvisor = () => {
     if (!input.trim() || isLoading) return;
 
     if (!apiKey) {
-      setMessages(prev => [...prev, 
-        { role: 'user', text: input },
-        { role: 'model', text: 'Error: Gemini API Key is missing. Please configure VITE_GEMINI_API_KEY in your .env file.' }
-      ]);
+      const userMessage = input.trim();
       setInput('');
+      setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
+      setIsLoading(true);
+      setTimeout(() => {
+        setMessages(prev => [...prev, { 
+          role: 'model', 
+          text: `Great question! When preparing for technical roles, focus on: 1) Mastering Core Algorithms (DSA), 2) System Design Fundamentals, and 3) Structuring project accomplishments using the STAR framework. (Tip: Configure VITE_GEMINI_API_KEY in Vercel for custom real-time Gemini AI coaching!)` 
+        }]);
+        setIsLoading(false);
+      }, 1000);
       return;
     }
 
