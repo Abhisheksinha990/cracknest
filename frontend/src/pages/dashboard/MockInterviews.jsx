@@ -264,11 +264,19 @@ const MockInterviews = () => {
       setMessages([{ role: 'model', text }]);
     } catch (error) {
       console.error(error);
+      const errMsg = error?.message || "";
+      if (errMsg.includes("429") || errMsg.includes("quota") || errMsg.includes("RESOURCE_EXHAUSTED")) {
+        toast.error("Gemini API daily quota reached. Enter your own free API Key using the key button above.");
+        setPhase('setup');
+        setIsLoading(false);
+        return;
+      }
+      
       setMessages([{ 
         role: 'model', 
         text: `Welcome to your mock interview for the ${role} position at ${company}. Let's start with Question 1:\n"Please introduce yourself and highlight your core technical skills and past projects relevant to ${company}."` 
       }]);
-    } fontally: {
+    } finally {
       setIsLoading(false);
     }
   };
