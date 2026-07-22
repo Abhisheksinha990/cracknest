@@ -52,7 +52,6 @@ const ResumeAnalyzer = () => {
     if (!file) return toast.error("Please select a file first");
     
     if (!apiKey) {
-      toast('Using AI Preview Mode (Add VITE_GEMINI_API_KEY in Vercel for live analysis)', { icon: '✨' });
       setIsUploading(true);
       setTimeout(() => {
         setResults({
@@ -69,7 +68,7 @@ const ResumeAnalyzer = () => {
           ]
         });
         setIsUploading(false);
-      }, 2500);
+      }, 1500);
       return;
     }
 

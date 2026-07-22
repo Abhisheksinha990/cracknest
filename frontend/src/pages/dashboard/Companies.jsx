@@ -17,7 +17,6 @@ const Companies = () => {
     if (!companyInput.trim()) return;
 
     if (!apiKey) {
-      toast('Using AI Preview Mode (Add VITE_GEMINI_API_KEY in Vercel for live custom responses)', { icon: '✨' });
       setTimeout(() => {
         setRoadmapData({
           company: companyInput,
@@ -28,15 +27,14 @@ const Companies = () => {
             { round: "Round 3: Technical Deep Dive & Past Projects", details: "In-depth review of your technical decisions, trade-offs, and past engineering accomplishments." },
             { round: "Round 4: Behavioral & Culture Fit", details: "Leadership principles and situational questions structured around the STAR method." }
           ],
-          topTopics: ["Algorithms & Data Structures", "System Architecture & Caching", "Database Design & SQL", "Object-Oriented Programming"],
-          prepTips: [
+          preparation: [
             "Practice medium to hard Leetcode problems focusing on optimal time complexity.",
             "Review system design patterns like load balancing, caching strategies, and database sharding.",
             "Prepare 3-4 structured stories using the STAR method for behavioral questions."
           ]
         });
         setIsLoading(false);
-      }, 1000);
+      }, 500);
       return;
     }
 
@@ -193,7 +191,7 @@ const Companies = () => {
                     How to Prepare
                   </h3>
                   <ul className="space-y-4">
-                    {roadmapData.preparation.map((tip, idx) => (
+                    {(roadmapData.preparation || []).map((tip, idx) => (
                       <li key={idx} className="flex items-start gap-3 text-zinc-300 bg-zinc-900/50 p-4 rounded-xl border border-white/5">
                         <div className="w-5 h-5 rounded-full bg-[#00B386]/10 flex items-center justify-center text-[#33bb9a] shrink-0 mt-0.5">
                           <CheckCircle2 size={14} />

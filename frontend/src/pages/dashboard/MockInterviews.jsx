@@ -75,7 +75,6 @@ const MockInterviews = () => {
     }
     
     if (!apiKey) {
-      toast('Using AI Preview Mode (Add VITE_GEMINI_API_KEY in Vercel for live responses)', { icon: '✨' });
       setPhase('interview');
       setIsLoading(true);
       setMessages([]);
@@ -85,7 +84,7 @@ const MockInterviews = () => {
           { role: 'model', text: `Welcome to your mock interview for the ${role} position at ${company}! Let's start with a foundational question: Can you describe a challenging technical problem you solved recently and how you approached the architecture and debugging?` }
         ]);
         setIsLoading(false);
-      }, 1000);
+      }, 500);
       return;
     }
     
