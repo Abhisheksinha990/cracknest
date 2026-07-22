@@ -12,25 +12,18 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(title="CrackNest API")
 
 # CORS middleware
-# Reads ALLOWED_ORIGINS from env, or automatically permits all .netlify.app, .vercel.app, and localhost domains out of the box
-raw_origins = os.environ.get("ALLOWED_ORIGINS", "")
-if raw_origins and raw_origins != "*":
-    allowed_origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=allowed_origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-else:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origin_regex=r"https://.*\.netlify\.app|https://.*\.vercel\.app|https://.*\.onrender\.com|http://localhost:\d+|http://127\.0\.0\.1:\d+",
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+# Reads ALLOWED_ORIGINS from env, or automatically permits all .netlify.app, .vercel.app, and custom origins
+raw_origins = os.environ.get("ALLOWED_ORIGINS", "").strip()
+allowed_origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip() and origin.strip() != "*"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins if allowed_origins else [],
+    allow_origin_regex=r"https?://.*",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Include Routers
 app.include_router(auth.router)

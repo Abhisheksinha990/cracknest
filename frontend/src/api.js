@@ -1,7 +1,13 @@
 import axios from 'axios';
 
+const getBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api';
+  const trimmed = envUrl.trim().replace(/\/+$/, '');
+  return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api', // FastAPI backend URL
+  baseURL: getBaseUrl(),
 });
 
 // Add a request interceptor to include the JWT token
@@ -17,3 +23,4 @@ api.interceptors.request.use(
 );
 
 export default api;
+
