@@ -16,6 +16,22 @@ const Companies = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [roadmapData, setRoadmapData] = useState(null);
   const [notFoundCompany, setNotFoundCompany] = useState(null);
+  
+  const [userApiKey, setUserApiKey] = useState(localStorage.getItem('user_gemini_api_key') || '');
+  const [showKeyInput, setShowKeyInput] = useState(false);
+  const activeKey = userApiKey.trim() || import.meta.env.VITE_GEMINI_API_KEY || "";
+
+  const handleSaveKey = (e) => {
+    e.preventDefault();
+    if (userApiKey.trim()) {
+      localStorage.setItem('user_gemini_api_key', userApiKey.trim());
+      toast.success("Custom Gemini API Key saved!");
+    } else {
+      localStorage.removeItem('user_gemini_api_key');
+      toast.success("Reset to default system key.");
+    }
+    setShowKeyInput(false);
+  };
 
   const isCompanyValid = (name) => {
     if (!name || name.trim().length < 2) return false;
@@ -262,10 +278,18 @@ const Companies = () => {
       <div className="w-full min-h-screen flex flex-col pt-28 px-4 md:px-10 pb-20 relative z-10 text-zinc-100">
         
         {/* Header */}
-        <div className="mb-10 text-center max-w-3xl mx-auto">
-          <span className="px-3.5 py-1 bg-[#00B386]/10 text-[#33bb9a] text-xs font-bold uppercase rounded-full border border-[#00B386]/20">
-            Real Company Hiring Intelligence
-          </span>
+        <div className="mb-10 text-center max-w-3xl mx-auto space-y-3">
+          <div className="flex items-center justify-center gap-2">
+            <span className="px-3.5 py-1 bg-[#00B386]/10 text-[#33bb9a] text-xs font-bold uppercase rounded-full border border-[#00B386]/20">
+              Real Company Hiring Intelligence
+            </span>
+            <button
+              onClick={() => setShowKeyInput(!showKeyInput)}
+              className="px-3 py-1 bg-zinc-900 hover:bg-zinc-800 text-xs font-semibold text-[#33bb9a] border border-[#00B386]/30 rounded-full transition-all cursor-pointer shadow-sm"
+            >
+              🔑 {userApiKey ? 'Custom Key Active' : 'Daily Limit Hit? Set Key'}
+            </button>
+          </div>
           <motion.h1 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -276,6 +300,28 @@ const Companies = () => {
           <p className="text-zinc-400 text-sm md:text-base">
             Enter any real company to instantly generate hiring patterns, round breakdowns, DSA topics, salary ranges, and a 4-week preparation plan.
           </p>
+
+          {/* Key Panel */}
+          {showKeyInput && (
+            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="p-4 bg-zinc-900/90 border border-zinc-800 rounded-2xl space-y-3 text-left">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-white uppercase tracking-wider">Custom Gemini API Key Manager</span>
+                <span className="text-[11px] text-zinc-400">Get a free key in 10 sec at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-[#33bb9a] underline font-bold">aistudio.google.com</a></span>
+              </div>
+              <form onSubmit={handleSaveKey} className="flex gap-2">
+                <input
+                  type="password"
+                  value={userApiKey}
+                  onChange={(e) => setUserApiKey(e.target.value)}
+                  placeholder="Paste free Gemini API Key (AIzaSy...)"
+                  className="flex-1 px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#00B386]"
+                />
+                <button type="submit" className="px-5 py-2.5 bg-[#00B386] hover:bg-[#33bb9a] text-white text-xs font-bold rounded-xl transition-colors cursor-pointer">
+                  Save & Activate
+                </button>
+              </form>
+            </motion.div>
+          )}
         </div>
 
         {/* Input Bar */}
