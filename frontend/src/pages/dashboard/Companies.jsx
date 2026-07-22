@@ -42,8 +42,9 @@ const Companies = () => {
     setRoadmapData(null);
 
     try {
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
+      const activeKey = apiKey || localStorage.getItem('user_gemini_api_key');
+      const genAI = new GoogleGenerativeAI(activeKey);
+      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
       const prompt = `You are an expert technical recruiter and career coach. I need a comprehensive hiring roadmap and preparation strategy for interviewing at ${companyInput}.
       FIRST, verify if the company "${companyInput}" actually exists and is a real entity. If it is a fake, fabricated, or nonsensical string (like random letters), you MUST return EXACTLY this JSON object and nothing else: {"error": "Company does not exist"}

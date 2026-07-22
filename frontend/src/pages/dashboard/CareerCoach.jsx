@@ -91,9 +91,10 @@ const StrategicCareerAdvisor = () => {
     }
 
     try {
-      const genAI = new GoogleGenerativeAI(apiKey);
+      const activeKey = apiKey || localStorage.getItem('user_gemini_api_key');
+      const genAI = new GoogleGenerativeAI(activeKey);
       const model = genAI.getGenerativeModel({ 
-        model: 'gemini-3.5-flash',
+        model: 'gemini-1.5-flash',
         systemInstruction: "You are an elite Career Advisor & Placement Strategist for CrackNest. Your ONLY purpose is to help students get hired. You provide detailed company-specific roadmaps (e.g., how to get into Google, Cognizant, TCS), technical interview questions, aptitude test strategies, HR round tips, and resume reviews. If a student asks for a roadmap, break it down step-by-step (week by week or month by month) with specific resources and topics. STRICT RULE: You must politely but firmly refuse to answer any prompt that is not related to placements, software engineering careers, coding interviews, or professional development. Keep responses structured, highly actionable, and professional."
       });
       

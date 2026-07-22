@@ -115,9 +115,10 @@ const MockInterviews = () => {
 
       const stressInstructions = isStressMode ? `\n\nSTRESS INTERVIEW MODE IS ACTIVE: You MUST act as an extremely demanding, impatient, and skeptical FAANG interviewer. Constantly challenge the user's assumptions. If they give a generic answer, interrupt and tell them it sounds rehearsed. Add sudden constraints (e.g., "Okay, but what if you couldn't use extra memory?"). Do not be polite. Be ruthlessly critical to prepare them for high-pressure situations.` : '';
 
-      const genAI = new GoogleGenerativeAI(apiKey);
+      const activeKey = apiKey || localStorage.getItem('user_gemini_api_key');
+      const genAI = new GoogleGenerativeAI(activeKey);
       const model = genAI.getGenerativeModel({ 
-        model: 'gemini-3.5-flash',
+        model: 'gemini-1.5-flash',
         systemInstruction: baseInstructions + stressInstructions
       });
 

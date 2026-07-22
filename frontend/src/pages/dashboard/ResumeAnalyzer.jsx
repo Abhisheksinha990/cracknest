@@ -84,8 +84,9 @@ const ResumeAnalyzer = () => {
     try {
       const filePart = await fileToGenerativePart(file);
       
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
+      const activeKey = apiKey || localStorage.getItem('user_gemini_api_key');
+      const genAI = new GoogleGenerativeAI(activeKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
       const basePrompt = targetCompany 
         ? `You are an expert ATS (Applicant Tracking System) algorithm and a Senior Technical Recruiter at ${targetCompany}.
