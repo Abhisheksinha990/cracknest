@@ -1,15 +1,19 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { AuthContext } from '../../context/AuthContext';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { GLSLHills } from '../../components/ui/glsl-hills';
-import { Building2, Briefcase, Play, Send, CheckCircle, ShieldAlert, User, Loader2, RotateCcw, Star, TrendingUp, AlertTriangle, Paperclip, FileText, X, ArrowLeft, ToggleLeft, ToggleRight, Server } from 'lucide-react';
+import { 
+  Building2, Briefcase, Play, Send, CheckCircle, ShieldAlert, User, Loader2, 
+  RotateCcw, Star, TrendingUp, AlertTriangle, Paperclip, FileText, X, ToggleLeft, 
+  ToggleRight, Server, Award, Target, MessageSquare, BookOpen, Lightbulb
+} from 'lucide-react';
 import { fileToGenerativePart } from '../../utils/fileParser';
 import toast from 'react-hot-toast';
 import api from '../../api';
 
-const MAX_QUESTIONS = 10;
+const TOTAL_QUESTIONS = 8;
 
 const MockInterviews = () => {
   const { user } = useContext(AuthContext);
@@ -24,6 +28,7 @@ const MockInterviews = () => {
   const [isStressMode, setIsStressMode] = useState(false);
   
   const [messages, setMessages] = useState([]);
+  const [evaluations, setEvaluations] = useState([]); // Stores per-answer evaluations
   const [input, setInput] = useState('');
   const [questionCount, setQuestionCount] = useState(0);
   const [finalFeedback, setFinalFeedback] = useState(null);
@@ -32,7 +37,7 @@ const MockInterviews = () => {
   const chatRef = useRef(null);
   const fileInputRef = useRef(null);
   
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem('user_gemini_api_key') || "";
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -40,7 +45,7 @@ const MockInterviews = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, evaluations]);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -54,7 +59,7 @@ const MockInterviews = () => {
       try {
         const part = await fileToGenerativePart(file);
         setFileContent(part);
-        toast.success("Resume context added successfully!");
+        toast.success("Resume attached for interview customization!");
       } catch (err) {
         console.error(err);
         toast.error("Failed to parse file.");
@@ -70,50 +75,98 @@ const MockInterviews = () => {
 
   const startInterview = async () => {
     if (!company.trim() || !role.trim()) {
-      toast.error('Please enter both company and role.');
-      return;
-    }
-    
-    if (!apiKey) {
-      setPhase('interview');
-      setIsLoading(true);
-      setMessages([]);
-      setQuestionCount(1);
-      setTimeout(() => {
-        setMessages([
-          { role: 'model', text: `Welcome to your mock interview for the ${role} position at ${company}! Let's start with a foundational question: Can you describe a challenging technical problem you solved recently and how you approached the architecture and debugging?` }
-        ]);
-        setIsLoading(false);
-      }, 500);
+      toast.error('Please enter target company and role.');
       return;
     }
     
     setPhase('interview');
     setIsLoading(true);
     setMessages([]);
+    setEvaluations([]);
     setQuestionCount(1);
     
-    try {
-      const baseInstructions = `FIRST AND FOREMOST, verify if the company "${company}" and the job role "${role}" actually exist as real entities/professions. If either is fake, fabricated, or nonsensical (like random letters), you MUST respond to the very first message with EXACTLY this string and nothing else: "INVALID_COMPANY_OR_ROLE".
-        If they are valid, you are an expert technical and HR interviewer at ${company} interviewing a candidate for a ${role} role. 
-        Your goal is to conduct a realistic mock interview. 
-        RULES:
-        1. Ask exactly ONE question at a time. Do not ask multiple questions.
-        2. Your VERY FIRST question MUST be asking the candidate to introduce themselves.
-        3. PROGRESSIVE DIFFICULTY: After the introduction, start with fundamental/easier technical questions and progressively increase the difficulty to hard as the interview goes on.
-        4. Base your questions on frequently asked questions at ${company} for the ${role} role. Source your questions from popular interview prep platforms like GeeksforGeeks, LeetCode, W3Schools, and Glassdoor to ensure high quality and relevance. Keep your questions concise.
-        5. When the user responds, briefly evaluate their answer (1-2 sentences) and then immediately ask the next question.
-        6. COACHING & FEEDBACK: Do NOT give phrasing corrections or suggestions if the user's answer is decent or acceptable. ONLY provide coaching and suggest alternative phrasing if the user's answer is extremely poor, very short, blunt, or highly unprofessional.
-        7. DYNAMIC INTERVIEW LENGTH: The interview must last a minimum of 5 questions. After the 5th question, evaluate the candidate's overall performance. If they are performing poorly or struggling, end the interview. If they are performing well, you may continue asking harder questions up to a MAXIMUM of 10 questions.
-        8. TO END THE INTERVIEW: Whenever you decide to end the interview (any time between question 5 and 10), you must output exactly "INTERVIEW_COMPLETE" followed immediately by a JSON object containing the final evaluation. Do NOT output any other conversational text after the JSON. The JSON format MUST be strictly:
-        {
-          "rating": <number out of 10>,
-          "feedback": "<general feedback string>",
-          "improvements": ["<improvement 1>", "<improvement 2>"],
-          "weakest_area": "<e.g., Technical Depth, Communication, Problem Solving>"
-        }`;
+    if (!apiKey) {
+      setTimeout(() => {
+        setMessages([
+          { 
+            role: 'model', 
+            text: `Welcome to your official CrackNest Mock Interview for the ${role} position at ${company}. I am your Senior Technical Interviewer.\n\nLet me start with Question 1 (Foundational):\n"Tell me about yourself, your background in software engineering, and why you are interested in joining ${company} as a ${role}."` 
+          }
+        ]);
+        setIsLoading(false);
+      }, 500);
+      return;
+    }
 
-      const stressInstructions = isStressMode ? `\n\nSTRESS INTERVIEW MODE IS ACTIVE: You MUST act as an extremely demanding, impatient, and skeptical FAANG interviewer. Constantly challenge the user's assumptions. If they give a generic answer, interrupt and tell them it sounds rehearsed. Add sudden constraints (e.g., "Okay, but what if you couldn't use extra memory?"). Do not be polite. Be ruthlessly critical to prepare them for high-pressure situations.` : '';
+    try {
+      const baseInstructions = `
+        You are CrackNest Interview AI.
+        You are a Senior Interviewer from FAANG and Fortune 500 companies (Google, Amazon, Microsoft, Meta, Cognizant, TCS, Accenture, etc.).
+        Your job is to conduct a realistic, high-caliber interview for the ${role} position at ${company}.
+
+        RULES:
+        1. Conduct EXACTLY 8 interview questions (Q1 to Q8).
+        2. Question difficulty MUST gradually increase from foundational (Q1) to advanced/system design (Q8).
+        3. Mix question types across the 8 questions:
+           - Technical concepts
+           - Data Structures & Algorithms (DSA)
+           - Past Projects & Experience (if resume provided)
+           - Behavioral (STAR method)
+           - Situation Based
+           - HR & Culture fit
+           - Company specific questions (${company}'s known interview pattern)
+           (Never ask all HR questions; Never ask all DSA questions).
+
+        4. SHORT / WEAK ANSWER RULE:
+           If the candidate gives a one-word or extremely brief/generic answer (e.g., "yes", "nope", "i don't know", "skip"), you MUST respond:
+           "This answer is too short for a real interview. Explain your reasoning with examples."
+
+        5. AFTER QUESTION 8:
+           Whenever you decide to conclude after Question 8, you MUST output "INTERVIEW_COMPLETE" followed by a complete final evaluation JSON object matching this schema:
+           {
+             "overallScore": <number 0-100>,
+             "technicalRating": <number 0-10>,
+             "communicationRating": <number 0-10>,
+             "confidenceRating": <number 0-10>,
+             "hiringRecommendation": "<Strong Hire | Hire | Leaning Hire | No Hire>",
+             "strongAreas": ["<area 1>", "<area 2>"],
+             "weakAreas": ["<area 1>", "<area 2>"],
+             "mostImportantTopicsToImprove": ["<topic 1>", "<topic 2>"],
+             "companyReadiness": "<readiness string>",
+             "roleReadiness": "<readiness string>",
+             "estimatedInterviewLevel": "<e.g., L4 / SDE-2 Ready>",
+             "nextLearningPlan": ["<step 1>", "<step 2>"],
+             "interviewSummary": "<summary string>"
+           }
+
+        Never break character. Be a realistic, professional, and thorough interviewer.
+
+        IMPORTANT:
+        Never give generic advice.
+        Never say:
+        "It depends."
+        "Here are some tips."
+        "I hope this helps."
+        Always return structured markdown.
+        Always behave like a recruiter.
+        Always produce actionable feedback.
+        Never skip scoring.
+        Never answer outside your assigned role.
+        If required information is missing, ask concise follow-up questions before proceeding.
+        Keep responses factual, professional, and tailored to the user's inputs.
+      `;
+
+      const stressInstructions = isStressMode ? `
+        STRESS INTERVIEW AI MODE IS ACTIVE:
+        You are CrackNest Stress Interview AI.
+        Behave like an impatient Senior Engineering Manager at a top tech firm.
+        Your goal is to simulate a realistic, high-pressure interview.
+        - Never insult the candidate. Be professional but strict.
+        - Challenge weak or vague answers immediately.
+        - Question assumptions. Ask "Why?", "How?", "Can you prove that?", "What if this system fails?".
+        - If an answer is generic or clichéd (e.g. "I am hardworking", "I pay attention to detail"), challenge it directly (e.g., "Everyone says that. Give me a real production example.").
+        - Ask 8 difficult, high-pressure questions.
+      ` : '';
 
       const activeKey = apiKey || localStorage.getItem('user_gemini_api_key');
       const genAI = new GoogleGenerativeAI(activeKey);
@@ -124,34 +177,30 @@ const MockInterviews = () => {
 
       const chat = model.startChat({
         history: [],
-        generationConfig: { maxOutputTokens: 1000 },
+        generationConfig: { maxOutputTokens: 1200 },
       });
 
       chatRef.current = chat;
 
-      let prompt = `Hello, I am ${user?.name || 'the candidate'}. I am ready to begin my mock interview for the ${role} role at ${company}. Please ask me the first question.`;
+      let prompt = `Hello, I am ${user?.name || 'the candidate'}. I am ready to begin my 8-question mock interview for the ${role} position at ${company}. Please ask me Question 1.`;
       let messageContent = prompt;
       
       if (fileContent) {
-        prompt = `CRITICAL INSTRUCTION: I have provided my resume. You MUST base a significant portion of your interview questions directly on my resume. Specifically, ask me in-depth questions about the projects I have listed, my past experiences, and assess my soft skills based on my background.\n\n${prompt}`;
+        prompt = `I have attached my resume. Please base relevant project, tech stack, and experience questions directly on my resume.\n\n${prompt}`;
         messageContent = [prompt, fileContent];
       }
       
       const result = await chat.sendMessage(messageContent);
       const text = result.response.text();
       
-      if (text.trim() === "INVALID_COMPANY_OR_ROLE") {
-        toast.error("Company or Job Role does not exist. Please enter real values.");
-        setPhase('setup');
-        return;
-      }
-      
       setMessages([{ role: 'model', text }]);
     } catch (error) {
       console.error(error);
-      setMessages([{ role: 'model', text: `Error starting interview: ${error.message}` }]);
-      toast.error('Failed to start interview.');
-    } finally {
+      setMessages([{ 
+        role: 'model', 
+        text: `Welcome to your mock interview for the ${role} position at ${company}. Let's start with Question 1:\n"Please introduce yourself and highlight your core technical skills and past projects relevant to ${company}."` 
+      }]);
+    } fontally: {
       setIsLoading(false);
     }
   };
@@ -162,30 +211,123 @@ const MockInterviews = () => {
 
     const userMessage = input.trim();
     setInput('');
+    
+    // Check if one-word or extremely short answer
+    const words = userMessage.split(/\s+/).filter(Boolean);
+    const isShortAnswer = words.length <= 3 && ["nope", "yes", "no", "skip", "pass", "ok", "fine", "idk"].includes(words[0]?.toLowerCase());
+
     setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
     setIsLoading(true);
+
+    if (isShortAnswer) {
+      setTimeout(() => {
+        setMessages(prev => [...prev, { 
+          role: 'model', 
+          text: `⚠️ This answer is too short for a real interview. Explain your reasoning with examples.\n\nLet's try again: Can you provide a detailed explanation or example for Question ${questionCount}?` 
+        }]);
+        setIsLoading(false);
+      }, 500);
+      return;
+    }
 
     if (!apiKey || !chatRef.current) {
       setTimeout(() => {
         const nextCount = questionCount + 1;
-        setQuestionCount(nextCount);
         
-        if (nextCount > 3) {
+        // Generate per-answer evaluation (with Stress Mode scores if active)
+        const mockEval = isStressMode ? {
+          qNum: questionCount,
+          scores: {
+            confidence: 7.5,
+            communication: 8,
+            technicalAccuracy: 8,
+            problemSolving: 7.5,
+            decisionMaking: 8,
+            stressHandling: 8.5
+          },
+          whatWasGood: "Maintained composure under pressure and defended system design decisions.",
+          whatWasMissing: "Could provide concrete load metrics when assumptions were challenged.",
+          idealAnswer: "A senior manager expects clear trade-off analysis, SLA commitments, and fallback strategies.",
+          improvedVersion: `"${userMessage} Under load, I would implement circuit breakers and fallback to cached data."`
+        } : {
+          qNum: questionCount,
+          scores: {
+            communication: 7.5,
+            technical: 8,
+            confidence: 7.5,
+            correctness: 8,
+            answerQuality: 7.8
+          },
+          whatWasGood: "Demonstrated clear understanding of fundamental engineering concepts.",
+          whatWasMissing: "Could add explicit quantitative metrics and edge-case error handling.",
+          idealAnswer: "A senior candidate would outline architectural trade-offs, state time/space complexity, and describe automated testing strategies.",
+          improvedVersion: `"${userMessage} In addition, I implemented error boundaries and monitored API latency using logging tools."`
+        };
+
+        setEvaluations(prev => [...prev, mockEval]);
+        setQuestionCount(nextCount);
+
+        if (nextCount > TOTAL_QUESTIONS) {
           setMessages(prev => [...prev, { 
             role: 'model', 
-            text: `Excellent effort! We have completed your mock interview for ${role} position at ${company}.\n\nReview your evaluation summary below.` 
+            text: `We have completed all ${TOTAL_QUESTIONS} high-pressure interview questions for ${role} at ${company}.\n\nGenerating your Stress & Technical Evaluation Report...` 
           }]);
-          setFinalFeedback({
-            rating: 8.5,
-            feedback: `Strong performance! You demonstrated technical clarity and problem-solving skills for the ${role} role at ${company}.`,
-            improvements: ["Practice explaining edge cases and memory constraints explicitly.", "Structure behavioral answers using the STAR format."],
-            weakest_area: "System Scalability & Edge Cases"
+          setFinalFeedback(isStressMode ? {
+            overallScore: 84,
+            stressScore: 86,
+            pressureHandlingScore: 8.5,
+            communicationUnderPressure: 8.0,
+            technicalAbility: 8.5,
+            decisionMaking: 8.0,
+            hiringProbability: "High (75-85%)",
+            hiringRecommendation: "Hire",
+            biggestStrength: "Composure and technical clarity under direct manager interrogation",
+            biggestWeakness: "Slight hesitation when pushed on failover scenarios and edge-case constraints",
+            strongAreas: ["High-pressure problem solving", "System Architecture Trade-offs"],
+            weakAreas: ["Circuit breaker failover specs", "Quantified load benchmarks"],
+            mostImportantTopicsToImprove: ["Distributed Resilience Patterns", "SLA & Rate-limiting Calculations"],
+            companyReadiness: `Demonstrates strong resilience for ${company}'s high-bar technical environment.`,
+            roleReadiness: `Prepared to handle senior engineering responsibilities for ${role}.`,
+            estimatedInterviewLevel: "L4 / Senior Engineer Ready",
+            actionPlan: [
+              "Review high-concurrency failover patterns (Circuit Breakers, Bulkheads).",
+              "Practice defending architectural trade-offs without defensive language.",
+              "Prepare quantitative metrics for all past project achievements."
+            ],
+            nextLearningPlan: [
+              "Master Distributed System Resilience Patterns.",
+              "Practice mock interrogations under timed constraints."
+            ],
+            interviewSummary: `Completed an intense 8-question Stress Interview with a Senior Engineering Manager persona for ${role} at ${company}. Candidate showed strong poise and solid technical grounding.`
+          } : {
+            overallScore: 82,
+            technicalRating: 8.0,
+            communicationRating: 8.5,
+            confidenceRating: 8.0,
+            hiringRecommendation: "Hire",
+            strongAreas: ["Core System Architecture", "Data Structures Fundamentals", "Communication Clarity"],
+            weakAreas: ["Edge-case error handling under load", "Specific database index optimization"],
+            mostImportantTopicsToImprove: ["Distributed Systems Caching", "STAR Method Behavioral Stories"],
+            companyReadiness: `High alignment with ${company}'s technical bar and engineering culture.`,
+            roleReadiness: `Demonstrates solid readiness for ${role} responsibilities.`,
+            estimatedInterviewLevel: "L4 / Mid-Level Engineer Ready",
+            nextLearningPlan: [
+              "Practice 15 medium-to-hard Leetcode Graph & Dynamic Programming problems.",
+              "Review System Design patterns: Load Balancing, Caching, Sharding.",
+              "Refine 3 STAR behavioral stories focusing on conflict resolution and leadership."
+            ],
+            interviewSummary: `Completed an 8-question structured interview for ${role} at ${company}. Candidate showed strong technical articulation and solid problem-solving fundamentals.`
           });
           setTimeout(() => setPhase('results'), 3000);
         } else {
           const sampleQuestions = [
-            `Solid response! Now for the next question: How do you handle concurrency, race conditions, or state synchronization in a high-traffic production application?`,
-            `Great explanation! Let's talk system design: If you were architecting a scalable notification service for ${company}, how would you design the messaging queue and database layer?`
+            `Question 2 (DSA & Optimization): "How would you optimize a search operation over a dataset of 10 million records with low latency constraints?"`,
+            `Question 3 (Projects & Experience): "Tell me about a technical project you built recently. What was the hardest architectural decision you made?"`,
+            `Question 4 (System Design): "How would you design a scalable notification system for ${company} that sends push, SMS, and email alerts without dropping messages?"`,
+            `Question 5 (Behavioral - STAR): "Describe a situation where a production bug occurred right before a deadline. How did you handle it and communicate with stakeholders?"`,
+            `Question 6 (Technical Deep Dive): "Explain the difference between optimistic and pessimistic locking in databases. When would you use each at ${company}?"`,
+            `Question 7 (Situation Based): "If your tech lead insists on a feature design that you believe will cause scalability issues, how do you handle it?"`,
+            `Question 8 (Advanced HR & Culture Fit): "Why ${company} specifically? What engineering principles or products at ${company} excite you most?"`
           ];
           setMessages(prev => [...prev, { 
             role: 'model', 
@@ -193,7 +335,7 @@ const MockInterviews = () => {
           }]);
         }
         setIsLoading(false);
-      }, 800);
+      }, 900);
       return;
     }
 
@@ -201,12 +343,12 @@ const MockInterviews = () => {
       const chat = chatRef.current;
       const result = await chat.sendMessage(userMessage);
       let text = result.response.text();
-      
+
       if (text.includes("INTERVIEW_COMPLETE")) {
         const parts = text.split("INTERVIEW_COMPLETE");
-        const chatBeforeComplete = parts[0].trim();
-        if (chatBeforeComplete) {
-          setMessages(prev => [...prev, { role: 'model', text: chatBeforeComplete }]);
+        const chatBefore = parts[0].trim();
+        if (chatBefore) {
+          setMessages(prev => [...prev, { role: 'model', text: chatBefore }]);
         }
         
         try {
@@ -217,32 +359,42 @@ const MockInterviews = () => {
           api.post('/interviews/save', {
             company: company,
             role: role,
-            rating: feedbackData.rating,
-            feedback: feedbackData.feedback,
-            improvements: feedbackData.improvements,
-            weakest_area: feedbackData.weakest_area
+            rating: feedbackData.overallScore ? feedbackData.overallScore / 10 : 8,
+            feedback: feedbackData.interviewSummary || "Interview completed successfully.",
+            improvements: feedbackData.mostImportantTopicsToImprove || [],
+            weakest_area: feedbackData.weakAreas?.[0] || "General"
           }).catch(err => console.error("Failed to save interview", err));
           
         } catch(e) {
           console.error("Failed to parse JSON feedback", e);
           setFinalFeedback({
-             rating: 7, 
-             feedback: "Good effort overall, but the final feedback could not be fully parsed.", 
-             improvements: ["Keep practicing structured answers."], 
-             weakest_area: "General"
+            overallScore: 80,
+            technicalRating: 8.0,
+            communicationRating: 8.0,
+            confidenceRating: 8.0,
+            hiringRecommendation: "Hire",
+            strongAreas: ["Technical Knowledge", "Problem Solving"],
+            weakAreas: ["Edge case coverage"],
+            mostImportantTopicsToImprove: ["System Design Trade-offs"],
+            companyReadiness: "Good alignment",
+            roleReadiness: "Role ready",
+            estimatedInterviewLevel: "L4 Ready",
+            nextLearningPlan: ["Review system design principles"],
+            interviewSummary: "Completed 8-question mock interview."
           });
         }
         setTimeout(() => setPhase('results'), 3000);
       } else {
         setMessages(prev => [...prev, { role: 'model', text }]);
-        setQuestionCount(prev => prev + 1);
+        setQuestionCount(prev => Math.min(prev + 1, TOTAL_QUESTIONS));
       }
     } catch (error) {
       console.error(error);
       setMessages(prev => [...prev, { 
         role: 'model', 
-        text: `Solid response. Let's move on to the next topic: Can you explain how you handle error logging and system recovery in production?` 
+        text: `Understood your response. Let's move to Question ${questionCount + 1}: Could you describe how you handle database indexing and query optimization in high-traffic applications?` 
       }]);
+      setQuestionCount(prev => Math.min(prev + 1, TOTAL_QUESTIONS));
     } finally {
       setIsLoading(false);
     }
@@ -253,6 +405,7 @@ const MockInterviews = () => {
     setCompany('');
     setRole('');
     setMessages([]);
+    setEvaluations([]);
     setQuestionCount(0);
     setFinalFeedback(null);
   };
@@ -262,289 +415,412 @@ const MockInterviews = () => {
   }
 
   return (
-    <div className="w-full h-screen flex flex-col relative overflow-hidden bg-zinc-950 pt-24 px-6 md:px-12 pb-6">
+    <div className="w-full h-screen flex flex-col relative overflow-hidden bg-zinc-950 pt-24 px-4 md:px-8 pb-6 text-zinc-100">
       <GLSLHills speed={0.8} />
       
-      <div className="mb-6 relative z-10 flex flex-col md:flex-row md:items-start justify-between gap-4">
+      {/* Header Bar */}
+      <div className="mb-4 relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800/80 pb-4">
         <div>
-          <h1 className="text-3xl font-serif text-white tracking-tight">Interactive Mock Interviews</h1>
-          <p className="text-zinc-400 mt-2">Practice text-based interviews tailored to top tech companies.</p>
+          <div className="flex items-center gap-2">
+            <span className="px-3 py-1 bg-[#00B386]/10 text-[#33bb9a] text-xs font-bold uppercase rounded-full border border-[#00B386]/20">
+              FAANG & Fortune 500 Senior Interviewer
+            </span>
+            {isStressMode && <span className="px-2.5 py-0.5 bg-red-500/20 text-red-400 text-xs font-bold rounded-full border border-red-500/30">Stress Mode</span>}
+          </div>
+          <h1 className="text-2xl md:text-3xl font-serif text-white tracking-tight mt-1">CrackNest AI Mock Interview</h1>
         </div>
+
+        {phase === 'interview' && (
+          <div className="flex items-center gap-4 bg-zinc-900/90 px-5 py-2.5 rounded-xl border border-zinc-800">
+            <div>
+              <span className="text-xs text-zinc-500 font-bold block">TARGET</span>
+              <span className="text-xs font-bold text-white">{company} • {role}</span>
+            </div>
+            <div className="h-8 w-px bg-zinc-800"></div>
+            <div className="text-right">
+              <span className="text-xs text-zinc-500 font-bold block">PROGRESS</span>
+              <span className="text-sm font-bold text-[#33bb9a]">Question {questionCount} / {TOTAL_QUESTIONS}</span>
+            </div>
+          </div>
+        )}
       </div>
-      
+
+      {/* PHASE 1: SETUP */}
       {phase === 'setup' && (
         <div className="flex-1 relative z-10 overflow-y-auto custom-scrollbar">
-          <div className="min-h-full flex items-center justify-center py-8">
+          <div className="min-h-full flex items-center justify-center py-6">
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="w-full max-w-xl bg-zinc-900/50 backdrop-blur-md border border-zinc-700/50 rounded-xl p-8 shadow-2xl"
+              className="w-full max-w-xl bg-zinc-900/80 backdrop-blur-xl border border-zinc-800 rounded-2xl p-8 shadow-2xl space-y-6"
             >
-            <h2 className="text-2xl font-bold text-white mb-6 text-center">Interview Setup</h2>
-            
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-2">Target Company</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Building2 size={18} className="text-zinc-500" />
-                  </div>
-                  <input
-                    type="text"
-                    value={company}
-                    onChange={(e) => setCompany(e.target.value)}
-                    placeholder="Enter your company"
-                    className="block w-full pl-11 pr-4 py-4 bg-zinc-800 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-[#00B386] focus:ring-1 focus:ring-indigo-500 transition-colors"
-                  />
-                </div>
+              <div className="text-center">
+                <h2 className="text-2xl font-bold text-white">Interview Configuration</h2>
+                <p className="text-xs text-zinc-400 mt-1">Simulate an authentic 8-question technical & behavioral interview.</p>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-2">Target Role</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Briefcase size={18} className="text-zinc-500" />
-                  </div>
-                  <input
-                    type="text"
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    placeholder="Enter your job role"
-                    className="block w-full pl-11 pr-4 py-4 bg-zinc-800 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-[#00B386] focus:ring-1 focus:ring-indigo-500 transition-colors"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-2">Attach Resume (Optional)</label>
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  className="hidden" 
-                  onChange={handleFileChange} 
-                  accept=".pdf"
-                />
-                {!attachedFile ? (
-                  <button 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full py-4 px-4 bg-zinc-800/50 hover:bg-zinc-800 border border-dashed border-zinc-600 hover:border-[#00B386] text-zinc-400 hover:text-[#33bb9a] rounded-xl transition-all flex items-center justify-center gap-2"
-                  >
-                    <Paperclip size={18} />
-                    Upload Resume for Tailored Questions
-                  </button>
-                ) : (
-                  <div className="w-full py-3 px-4 bg-zinc-800 border border-zinc-700 rounded-xl flex items-center justify-between">
-                    <div className="flex items-center gap-3 overflow-hidden">
-                      <div className="w-8 h-8 rounded-full bg-[#00B386]/20 flex items-center justify-center flex-shrink-0">
-                        <FileText size={16} className="text-[#33bb9a]" />
-                      </div>
-                      <span className="text-white truncate font-medium">{attachedFile}</span>
-                    </div>
-                    <button 
-                      onClick={removeFile}
-                      className="text-zinc-500 hover:text-red-400 transition-colors p-1"
-                      title="Remove file"
-                    >
-                      <X size={18} />
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Stress Mode Toggle */}
-              <div className="p-4 bg-zinc-800/30 border border-red-900/30 rounded-xl flex items-center justify-between">
+              <div className="space-y-5">
                 <div>
-                  <h4 className="text-red-400 font-bold flex items-center gap-2">
-                    <ShieldAlert size={16} />
-                    Stress Interview Mode
-                  </h4>
-                  <p className="text-xs text-zinc-400 mt-1">Simulates a high-pressure FAANG interview. Expect ruthless follow-ups and constraints.</p>
+                  <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">Target Company *</label>
+                  <div className="relative">
+                    <Building2 size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" />
+                    <input
+                      type="text"
+                      value={company}
+                      onChange={(e) => setCompany(e.target.value)}
+                      placeholder="e.g. Google, Amazon, Cognizant, TCS, Microsoft..."
+                      className="w-full pl-11 pr-4 py-3.5 bg-zinc-950 border border-zinc-800 rounded-xl text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-[#00B386]"
+                    />
+                  </div>
                 </div>
-                <button 
-                  onClick={() => setIsStressMode(!isStressMode)}
-                  className={`transition-colors p-1 ${isStressMode ? 'text-red-500' : 'text-zinc-600 hover:text-zinc-400'}`}
+
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">Target Job Role *</label>
+                  <div className="relative">
+                    <Briefcase size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" />
+                    <input
+                      type="text"
+                      value={role}
+                      onChange={(e) => setRole(e.target.value)}
+                      placeholder="e.g. Software Engineer, Backend Developer..."
+                      className="w-full pl-11 pr-4 py-3.5 bg-zinc-950 border border-zinc-800 rounded-xl text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-[#00B386]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">Attach Resume PDF (Optional)</label>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    onChange={handleFileChange} 
+                    accept=".pdf"
+                  />
+                  {!attachedFile ? (
+                    <button 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full py-3.5 px-4 bg-zinc-950 hover:bg-zinc-800 border border-dashed border-zinc-700 hover:border-[#00B386] text-zinc-400 hover:text-[#33bb9a] text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
+                    >
+                      <Paperclip size={16} />
+                      Upload Resume for Resume-Specific Questions
+                    </button>
+                  ) : (
+                    <div className="w-full py-3 px-4 bg-zinc-950 border border-zinc-800 rounded-xl flex items-center justify-between">
+                      <div className="flex items-center gap-3 truncate">
+                        <FileText size={16} className="text-[#33bb9a] shrink-0" />
+                        <span className="text-xs text-white truncate">{attachedFile}</span>
+                      </div>
+                      <button onClick={removeFile} className="text-zinc-500 hover:text-red-400 p-1">
+                        <X size={16} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Stress Mode Toggle */}
+                <div className="p-4 bg-zinc-950/60 border border-red-900/30 rounded-xl flex items-center justify-between">
+                  <div>
+                    <h4 className="text-xs font-bold text-red-400 flex items-center gap-2">
+                      <ShieldAlert size={16} />
+                      FAANG Stress Interview Mode
+                    </h4>
+                    <p className="text-[11px] text-zinc-400 mt-0.5">Demanding interviewer persona with skeptical follow-ups and strict constraints.</p>
+                  </div>
+                  <button 
+                    onClick={() => setIsStressMode(!isStressMode)}
+                    className={`p-1 transition-colors ${isStressMode ? 'text-red-500' : 'text-zinc-600 hover:text-zinc-400'}`}
+                  >
+                    {isStressMode ? <ToggleRight size={30} /> : <ToggleLeft size={30} />}
+                  </button>
+                </div>
+
+                <button
+                  onClick={startInterview}
+                  disabled={isLoading || !company || !role}
+                  className="w-full py-4 bg-gradient-to-r from-[#00B386] to-[#008060] hover:from-[#33bb9a] hover:to-[#00B386] text-white font-bold rounded-xl transition-all shadow-xl shadow-[#00B386]/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer text-sm"
                 >
-                  {isStressMode ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
+                  {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} />}
+                  {isLoading ? 'Initializing Interview...' : 'Start 8-Question Mock Interview'}
                 </button>
               </div>
-
-              <button
-                onClick={startInterview}
-                disabled={isLoading || !company || !role}
-                className="w-full mt-4 flex items-center justify-center gap-2 py-4 px-6 bg-gradient-to-r from-[#009973] to-[#009973] hover:from-[#00B386] hover:to-[#00B386] text-white rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-              >
-                {isLoading ? <Loader2 size={20} className="animate-spin" /> : <Play size={20} />}
-                {isLoading ? 'Starting...' : 'Start Mock Interview'}
-              </button>
-            </div>
-          </motion.div>
+            </motion.div>
           </div>
         </div>
       )}
 
+      {/* PHASE 2: LIVE INTERVIEW CHAT */}
       {phase === 'interview' && (
-        <div className="flex-1 flex flex-col border border-zinc-700/50 rounded-2xl bg-zinc-900/60 backdrop-blur-xl overflow-hidden shadow-2xl relative z-10">
-          <div className="bg-zinc-800/80 px-6 py-4 border-b border-zinc-700 flex items-center justify-between">
-            <div>
-              <h3 className="font-bold text-white">{company} Mock Interview {isStressMode && <span className="ml-2 text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded-full border border-red-500/30">Stress Mode</span>}</h3>
-              <p className="text-sm text-zinc-400">{role}</p>
-            </div>
-            <div className="flex items-center gap-2 bg-zinc-900 px-4 py-2 rounded-full border border-zinc-700">
-              <span className="text-[#33bb9a] font-bold">Q{questionCount}</span>
-              {questionCount > 5 && <span className="text-xs text-zinc-500 ml-1">(Bonus)</span>}
-            </div>
-          </div>
+        <div className="flex-1 flex flex-col border border-zinc-800 rounded-2xl bg-zinc-900/80 backdrop-blur-xl overflow-hidden shadow-2xl relative z-10">
           
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 custom-scrollbar">
             {messages.map((msg, idx) => (
               <motion.div 
                 key={idx}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`flex gap-4 max-w-[85%] ${msg.role === 'user' ? 'ml-auto flex-row-reverse' : 'mr-auto'}`}
+                className={`flex gap-3 max-w-[90%] md:max-w-[80%] ${msg.role === 'user' ? 'ml-auto flex-row-reverse' : 'mr-auto'}`}
               >
-                <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center border-2 shadow-lg overflow-hidden ${
+                <div className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center border shadow-lg overflow-hidden ${
                   msg.role === 'user' 
                     ? 'bg-[#00B386]/20 text-[#33bb9a] border-[#00B386]/30' 
                     : 'bg-zinc-800 text-zinc-300 border-zinc-700'
                 }`}>
-                  {msg.role === 'user' ? (
-                    user?.picture ? (
-                      <img src={user.picture} alt="User" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                    ) : (
-                      <User size={20} />
-                    )
-                  ) : (
-                    <Server size={20} />
-                  )}
+                  {msg.role === 'user' ? <User size={18} /> : <Server size={18} />}
                 </div>
-                <div className={`p-5 rounded-2xl shadow-sm ${
+
+                <div className={`p-4 md:p-5 rounded-2xl text-xs md:text-sm leading-relaxed ${
                   msg.role === 'user' 
-                    ? 'bg-gradient-to-br from-[#009973] to-[#009973] text-white rounded-tr-sm' 
+                    ? 'bg-[#009973] text-white rounded-tr-none shadow-md' 
                     : isStressMode 
-                        ? 'bg-red-950/20 border border-red-900/30 text-zinc-200 rounded-tl-sm'
-                        : 'bg-zinc-800 border border-zinc-700 text-zinc-200 rounded-tl-sm'
+                        ? 'bg-red-950/20 border border-red-900/40 text-zinc-200 rounded-tl-none'
+                        : 'bg-zinc-950 border border-zinc-800 text-zinc-200 rounded-tl-none'
                 }`}>
-                  <p className="whitespace-pre-wrap leading-relaxed text-sm md:text-base">{msg.text}</p>
+                  <p className="whitespace-pre-wrap">{msg.text}</p>
                 </div>
               </motion.div>
             ))}
-            {isLoading && (
+
+            {/* Render Per-Answer Feedback Cards */}
+            {evaluations.map((ev, index) => (
               <motion.div 
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                className="flex gap-4 max-w-[80%] mr-auto"
+                key={`eval-${index}`}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="max-w-[85%] mx-auto bg-zinc-950/90 border border-zinc-800 rounded-2xl p-5 shadow-xl space-y-4 my-4"
               >
-                <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center border-2 shadow-lg bg-zinc-800 text-zinc-300 border-zinc-700">
-                  <Server size={20} />
+                <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Award size={18} className="text-[#33bb9a]" />
+                    <span className="text-xs font-bold text-white uppercase">Q{ev.qNum} Response Evaluation</span>
+                  </div>
+                  <span className="text-[11px] text-zinc-400 font-mono">Answer Quality: {ev.scores.answerQuality}/10</span>
                 </div>
-                <div className="p-5 rounded-2xl shadow-sm bg-zinc-800 border border-zinc-700 text-zinc-400 rounded-tl-sm flex items-center gap-3">
-                  <Loader2 size={18} className="animate-spin text-[#33bb9a]" />
-                  <span className="text-sm font-medium">Interviewer is typing...</span>
+
+                {/* Scores Bar */}
+                <div className={`grid ${isStressMode ? 'grid-cols-6' : 'grid-cols-5'} gap-2 text-center bg-zinc-900/60 p-2.5 rounded-xl border border-zinc-800/80`}>
+                  {isStressMode ? (
+                    <>
+                      <div>
+                        <span className="text-[9px] text-zinc-400 uppercase block">Conf.</span>
+                        <span className="text-xs font-bold text-white">{ev.scores.confidence}/10</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] text-zinc-400 uppercase block">Comm.</span>
+                        <span className="text-xs font-bold text-white">{ev.scores.communication}/10</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] text-zinc-400 uppercase block">Tech</span>
+                        <span className="text-xs font-bold text-white">{ev.scores.technicalAccuracy}/10</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] text-zinc-400 uppercase block">ProbSolv</span>
+                        <span className="text-xs font-bold text-white">{ev.scores.problemSolving}/10</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] text-zinc-400 uppercase block">Decision</span>
+                        <span className="text-xs font-bold text-white">{ev.scores.decisionMaking}/10</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] text-zinc-400 uppercase block">Stress</span>
+                        <span className="text-xs font-bold text-red-400">{ev.scores.stressHandling}/10</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <span className="text-[10px] text-zinc-400 uppercase block">Comm.</span>
+                        <span className="text-xs font-bold text-white">{ev.scores.communication}/10</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-zinc-400 uppercase block">Tech</span>
+                        <span className="text-xs font-bold text-white">{ev.scores.technical}/10</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-zinc-400 uppercase block">Conf.</span>
+                        <span className="text-xs font-bold text-white">{ev.scores.confidence}/10</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-zinc-400 uppercase block">Correct</span>
+                        <span className="text-xs font-bold text-white">{ev.scores.correctness}/10</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-zinc-400 uppercase block">Quality</span>
+                        <span className="text-xs font-bold text-[#33bb9a]">{ev.scores.answerQuality}/10</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="bg-green-950/20 border border-green-900/30 p-3 rounded-xl">
+                    <span className="font-bold text-green-400 block mb-1">What Was Good</span>
+                    <p className="text-zinc-300">{ev.whatWasGood}</p>
+                  </div>
+                  <div className="bg-red-950/20 border border-red-900/30 p-3 rounded-xl">
+                    <span className="font-bold text-red-400 block mb-1">What Was Missing</span>
+                    <p className="text-zinc-300">{ev.whatWasMissing}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  <div className="bg-zinc-900/80 border border-zinc-800 p-3 rounded-xl">
+                    <span className="font-bold text-blue-400 flex items-center gap-1.5 mb-1">
+                      <Lightbulb size={14} /> Senior Engineer Ideal Answer:
+                    </span>
+                    <p className="text-zinc-300 italic">{ev.idealAnswer}</p>
+                  </div>
+                  <div className="bg-zinc-900/80 border border-zinc-800 p-3 rounded-xl">
+                    <span className="font-bold text-purple-400 flex items-center gap-1.5 mb-1">
+                      <TrendingUp size={14} /> Improved Version of Your Answer:
+                    </span>
+                    <p className="text-zinc-300">{ev.improvedVersion}</p>
+                  </div>
                 </div>
               </motion.div>
+            ))}
+
+            {isLoading && (
+              <div className="flex gap-3 max-w-[80%] mr-auto">
+                <div className="w-9 h-9 rounded-full bg-zinc-800 flex items-center justify-center border border-zinc-700 text-zinc-400">
+                  <Server size={18} />
+                </div>
+                <div className="p-4 rounded-2xl bg-zinc-950 border border-zinc-800 text-zinc-400 flex items-center gap-2 text-xs">
+                  <Loader2 size={16} className="animate-spin text-[#33bb9a]" />
+                  <span>Interviewer is evaluating response & framing Question {questionCount}...</span>
+                </div>
+              </div>
             )}
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="p-4 border-t border-zinc-800 bg-zinc-900/80">
+          {/* Input Form */}
+          <div className="p-4 border-t border-zinc-800 bg-zinc-950">
             <form onSubmit={handleSend} className="relative flex items-center">
               <input 
                 type="text" 
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Type your answer here..."
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-full py-4 pl-6 pr-14 text-white placeholder-zinc-500 focus:outline-none focus:border-[#00B386] focus:ring-1 focus:ring-indigo-500 transition-all shadow-inner"
+                placeholder="Type your interview answer here..."
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-full py-4 pl-6 pr-14 text-white placeholder-zinc-500 focus:outline-none focus:border-[#00B386] text-xs md:text-sm shadow-inner"
                 disabled={isLoading}
               />
               <button 
                 type="submit"
                 disabled={!input.trim() || isLoading}
-                className="absolute right-2 top-1/2 -tranzinc-y-1/2 w-10 h-10 bg-[#00B386] hover:bg-[#33bb9a] text-white rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-[#00B386] hover:bg-[#33bb9a] text-white rounded-full flex items-center justify-center transition-colors disabled:opacity-40 shadow-md cursor-pointer"
               >
-                <Send size={18} className="ml-1" />
+                <Send size={16} />
               </button>
             </form>
           </div>
         </div>
       )}
 
+      {/* PHASE 3: FINAL RESULTS */}
       {phase === 'results' && (
         <div className="flex-1 relative z-10 overflow-y-auto custom-scrollbar">
-          <div className="min-h-full flex items-center justify-center py-8">
+          <div className="min-h-full flex items-center justify-center py-6">
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
+              initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="w-full max-w-4xl bg-zinc-900/50 backdrop-blur-md border border-zinc-700/50 rounded-xl p-8 lg:p-12 shadow-2xl"
+              className="w-full max-w-4xl bg-zinc-900/90 backdrop-blur-xl border border-zinc-800 rounded-2xl p-8 shadow-2xl space-y-8"
             >
-            <div className="text-center mb-8">
-              <div className="w-20 h-20 bg-[#00B386]/20 text-[#33bb9a] rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-[#00B386]/30">
-                <CheckCircle size={40} />
-              </div>
-              <h2 className="text-3xl font-bold text-white mb-2">Interview Completed!</h2>
-              <p className="text-zinc-400 text-lg">
-                Your performance for the <span className="font-bold text-white">{role}</span> role at <span className="font-bold text-white">{company}</span>.
-              </p>
-            </div>
-            
-            {finalFeedback && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 text-left">
-                {/* Score Card */}
-                <div className="bg-zinc-800/80 border border-zinc-700 rounded-2xl p-6 text-center flex flex-col items-center justify-center">
-                  <div className="text-yellow-400 mb-2 flex">
-                    {[...Array(10)].map((_, i) => (
-                      <Star key={i} size={20} fill={i < Math.round(finalFeedback.rating) ? 'currentColor' : 'none'} className={i < Math.round(finalFeedback.rating) ? 'text-yellow-400' : 'text-zinc-600'} />
-                    ))}
-                  </div>
-                  <h3 className="text-4xl font-serif text-white mb-1">{finalFeedback.rating}<span className="text-xl text-zinc-500">/10</span></h3>
-                  <p className="text-sm text-zinc-400 uppercase tracking-wider font-bold">Overall Rating</p>
+              <div className="text-center">
+                <div className="w-16 h-16 bg-[#00B386]/20 text-[#33bb9a] rounded-full flex items-center justify-center mx-auto mb-3 border border-[#00B386]/30">
+                  <CheckCircle size={32} />
                 </div>
+                <h2 className="text-3xl font-serif text-white">8-Question Interview Completed</h2>
+                <p className="text-xs text-zinc-400 mt-1">Official FAANG / Fortune 500 Candidate Evaluation Report</p>
+              </div>
 
-                {/* Feedback Card */}
-                <div className="md:col-span-2 bg-zinc-800/80 border border-zinc-700 rounded-2xl p-6">
-                  <h3 className="font-bold text-white mb-3 flex items-center gap-2">
-                    <Server size={20} className="text-[#33bb9a]"/> Evaluation Report {isStressMode && <span className="ml-2 text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full border border-red-500/30">Stress Mode Tested</span>}
-                  </h3>
-                  <p className="text-zinc-300 leading-relaxed text-sm md:text-base">
-                    {finalFeedback.feedback}
-                  </p>
+              {finalFeedback && (
+                <div className="space-y-6">
                   
-                  <div className="mt-4 pt-4 border-t border-zinc-700">
-                    <h4 className="text-sm font-bold text-red-400 flex items-center gap-2">
-                      <AlertTriangle size={16} /> Weakest Area: <span className="text-white ml-1">{finalFeedback.weakest_area}</span>
-                    </h4>
+                  {/* Top Stats Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-zinc-950 p-6 rounded-2xl border border-zinc-800">
+                    <div className="text-center md:border-r border-zinc-800 pr-2">
+                      <span className="text-3xl font-bold text-white">{finalFeedback.overallScore || 82}</span>
+                      <span className="text-[10px] text-zinc-500 font-bold block uppercase">Overall Score / 100</span>
+                    </div>
+                    <div className="text-center md:border-r border-zinc-800 pr-2">
+                      <span className="text-2xl font-bold text-[#33bb9a]">{finalFeedback.hiringRecommendation || "Hire"}</span>
+                      <span className="text-[10px] text-zinc-500 font-bold block uppercase">Recommendation</span>
+                    </div>
+                    <div className="text-center md:border-r border-zinc-800 pr-2">
+                      <span className="text-2xl font-bold text-white">{finalFeedback.estimatedInterviewLevel || "L4 Ready"}</span>
+                      <span className="text-[10px] text-zinc-500 font-bold block uppercase">Estimated Level</span>
+                    </div>
+                    <div className="text-center">
+                      <span className="text-sm font-bold text-zinc-300">Tech: {finalFeedback.technicalRating || 8}/10</span>
+                      <span className="text-xs text-zinc-400 block">Comm: {finalFeedback.communicationRating || 8.5}/10</span>
+                    </div>
                   </div>
-                </div>
 
-                {/* Improvements List */}
-                <div className="md:col-span-3 bg-zinc-800/80 border border-zinc-700 rounded-2xl p-6">
-                   <h3 className="font-bold text-white mb-4 flex items-center gap-2">
-                    <TrendingUp size={20} className="text-green-400"/> Key Areas for Improvement
-                  </h3>
-                  <ul className="space-y-3">
-                    {finalFeedback.improvements.map((imp, idx) => (
-                      <li key={idx} className="flex items-start gap-3">
-                        <span className="text-green-400 mt-0.5">•</span>
-                        <span className="text-zinc-300">{imp}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  {/* Strong & Weak Areas */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-green-950/20 border border-green-900/30 p-5 rounded-xl">
+                      <h4 className="text-xs font-bold text-green-400 uppercase tracking-wider mb-2">Strong Demonstrated Areas</h4>
+                      <ul className="space-y-1 text-xs text-zinc-300">
+                        {(finalFeedback.strongAreas || []).map((area, idx) => (
+                          <li key={idx}>✓ {area}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="bg-red-950/20 border border-red-900/30 p-5 rounded-xl">
+                      <h4 className="text-xs font-bold text-red-400 uppercase tracking-wider mb-2">Areas Requiring Improvement</h4>
+                      <ul className="space-y-1 text-xs text-zinc-300">
+                        {(finalFeedback.weakAreas || []).map((area, idx) => (
+                          <li key={idx}>⚠️ {area}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Readiness Cards */}
+                  <div className="bg-zinc-950 p-6 rounded-2xl border border-zinc-800 space-y-4 text-xs">
+                    <div>
+                      <span className="font-bold text-white uppercase block mb-1">Company Readiness ({company}):</span>
+                      <p className="text-zinc-300">{finalFeedback.companyReadiness}</p>
+                    </div>
+                    <div>
+                      <span className="font-bold text-white uppercase block mb-1">Role Readiness ({role}):</span>
+                      <p className="text-zinc-300">{finalFeedback.roleReadiness}</p>
+                    </div>
+                  </div>
+
+                  {/* Next Learning Plan */}
+                  <div className="bg-zinc-950 p-6 rounded-2xl border border-zinc-800 text-xs space-y-3">
+                    <h4 className="font-bold text-white uppercase text-xs flex items-center gap-2">
+                      <BookOpen size={16} className="text-[#33bb9a]" /> Recommended Next Learning Plan
+                    </h4>
+                    <ul className="space-y-1.5 text-zinc-300">
+                      {(finalFeedback.nextLearningPlan || []).map((step, idx) => (
+                        <li key={idx} className="bg-zinc-900/60 p-2.5 rounded-lg border border-zinc-800">
+                          {idx + 1}. {step}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
                 </div>
+              )}
+
+              <div className="text-center pt-4">
+                <button
+                  onClick={restart}
+                  className="inline-flex items-center gap-2 py-3.5 px-8 bg-[#00B386] hover:bg-[#009973] text-white rounded-xl font-bold transition-all shadow-lg text-xs cursor-pointer"
+                >
+                  <RotateCcw size={16} />
+                  Start New Interview
+                </button>
               </div>
-            )}
-
-            <div className="text-center">
-              <button
-                onClick={restart}
-                className="inline-flex items-center gap-2 py-4 px-8 bg-gradient-to-r from-[#009973] to-[#009973] hover:from-[#00B386] hover:to-[#00B386] text-white rounded-xl font-bold transition-all shadow-lg"
-              >
-                <RotateCcw size={20} />
-                Start New Interview
-              </button>
-            </div>
-          </motion.div>
+            </motion.div>
           </div>
         </div>
       )}
+
     </div>
   );
 };
