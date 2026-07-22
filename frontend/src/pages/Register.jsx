@@ -1,7 +1,8 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { SignInPage } from '../components/ui/sign-in-flow';
+import { useGoogleLogin } from '@react-oauth/google';
 import toast from 'react-hot-toast';
 
 const Register = () => {
@@ -11,7 +12,6 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
 
   const from = location.state?.from?.pathname || '/';
-  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1234567890-mockclientid.apps.googleusercontent.com';
 
   const processGoogleToken = async (tokenStr) => {
     setLoading(true);
@@ -22,28 +22,18 @@ const Register = () => {
     }
   };
 
-  // Catch Google OAuth redirect token from URL hash after user signs in on Google
-  useEffect(() => {
-    const hash = window.location.hash;
-    if (hash && hash.includes('access_token=')) {
-      const params = new URLSearchParams(hash.replace('#', '?'));
-      const accessToken = params.get('access_token');
-      if (accessToken) {
-        window.history.replaceState(null, '', window.location.pathname);
-        processGoogleToken(accessToken);
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: (tokenResponse) => {
+      if (tokenResponse?.access_token) {
+        processGoogleToken(tokenResponse.access_token);
       }
-    }
-  }, []);
+    },
+    onError: () => toast.error("Google signup failed. Please check Authorized Origins in Google Console."),
+  });
 
   if (isAuthenticated) {
     return <Navigate to={from} replace />;
   }
-
-  const handleGoogleRedirect = () => {
-    const redirectUri = window.location.origin + '/register';
-    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=openid%20email%20profile&prompt=select_account`;
-    window.location.href = googleAuthUrl;
-  };
 
   return (
     <SignInPage 
@@ -55,8 +45,9 @@ const Register = () => {
           <div className="text-white text-lg animate-pulse font-medium py-4">Signing up with Google...</div>
         ) : (
           <button
-            onClick={handleGoogleRedirect}
-            className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white hover:bg-gray-100 text-gray-900 font-semibold rounded-full shadow-xl transition-all transform hover:scale-105 active:scale-95"
+            type="button"
+            onClick={() => handleGoogleLogin()}
+            className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white hover:bg-gray-100 text-gray-900 font-semibold rounded-full shadow-xl transition-all transform hover:scale-105 active:scale-95 cursor-pointer"
           >
             <svg className="w-6 h-6" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
