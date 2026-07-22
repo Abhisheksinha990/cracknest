@@ -50,16 +50,29 @@ import requests
 @router.post("/google")
 def google_login(payload: schemas.GoogleLoginRequest, db: Session = Depends(get_db)):
     google_data = {}
+    token_str = payload.credential
+    
+    # 1. Try Google userinfo API (for OAuth access tokens)
     try:
-        response = requests.get(f"https://oauth2.googleapis.com/tokeninfo?id_token={payload.credential}", timeout=5, verify=False)
-        if response.status_code == 200:
-            google_data = response.json()
+        res = requests.get("https://www.googleapis.com/oauth2/v3/userinfo", headers={"Authorization": f"Bearer {token_str}"}, timeout=5)
+        if res.status_code == 200:
+            google_data = res.json()
     except Exception:
         pass
 
+    # 2. Try Google tokeninfo API (for ID tokens)
     if not google_data.get("email"):
         try:
-            google_data = jwt.decode(payload.credential, options={"verify_signature": False})
+            res = requests.get(f"https://oauth2.googleapis.com/tokeninfo?id_token={token_str}", timeout=5)
+            if res.status_code == 200:
+                google_data = res.json()
+        except Exception:
+            pass
+
+    # 3. Fallback to unverified JWT decoding
+    if not google_data.get("email"):
+        try:
+            google_data = jwt.decode(token_str, options={"verify_signature": False})
         except Exception:
             raise HTTPException(status_code=400, detail="Invalid Google token format")
 
