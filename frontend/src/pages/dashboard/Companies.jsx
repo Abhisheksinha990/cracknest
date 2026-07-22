@@ -17,10 +17,37 @@ const Companies = () => {
   const [roadmapData, setRoadmapData] = useState(null);
   const [notFoundCompany, setNotFoundCompany] = useState(null);
 
+  const isCompanyValid = (name) => {
+    if (!name || name.trim().length < 2) return false;
+    const cleaned = name.trim().toLowerCase();
+    const knownList = [
+      "google", "microsoft", "amazon", "apple", "meta", "facebook", "netflix", "uber", "adobe",
+      "accenture", "cognizant", "capgemini", "infosys", "tcs", "tata consultancy services",
+      "wipro", "deloitte", "flipkart", "atlassian", "oracle", "ibm", "cisco", "salesforce",
+      "intel", "nvidia", "amd", "paypal", "paytm", "phonepe", "walmart", "target", "jpmorgan",
+      "goldman sachs", "morgan stanley", "barclays", "hsbc", "zomato", "swiggy", "razorpay",
+      "zerodha", "cred", "ola", "bloomberg", "intuit", "stripe", "airbnb", "doordash", "databricks"
+    ];
+    if (knownList.some(k => cleaned.includes(k) || k.includes(cleaned))) return true;
+    
+    const vowelCount = (cleaned.match(/[aeiou]/g) || []).length;
+    if (cleaned.length >= 4 && vowelCount === 0) return false;
+    if (cleaned.length >= 6 && (vowelCount / cleaned.length) < 0.18) return false;
+    return true;
+  };
+
   const handleGenerate = async (e) => {
     e.preventDefault();
     if (!companyInput.trim()) return;
 
+    if (!isCompanyValid(companyInput)) {
+      setNotFoundCompany(companyInput);
+      setRoadmapData(null);
+      toast.error("Company not found. Please select a valid company below.");
+      return;
+    }
+
+    setNotFoundCompany(null);
     setIsLoading(true);
 
     if (!apiKey) {

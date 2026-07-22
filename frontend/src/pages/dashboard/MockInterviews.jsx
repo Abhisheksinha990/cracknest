@@ -74,9 +74,55 @@ const MockInterviews = () => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const isCompanyValid = (name) => {
+    if (!name || name.trim().length < 2) return false;
+    const cleaned = name.trim().toLowerCase();
+    const knownList = [
+      "google", "microsoft", "amazon", "apple", "meta", "facebook", "netflix", "uber", "adobe",
+      "accenture", "cognizant", "capgemini", "infosys", "tcs", "tata consultancy services",
+      "wipro", "deloitte", "flipkart", "atlassian", "oracle", "ibm", "cisco", "salesforce",
+      "intel", "nvidia", "amd", "paypal", "paytm", "phonepe", "walmart", "target", "jpmorgan",
+      "goldman sachs", "morgan stanley", "barclays", "hsbc", "zomato", "swiggy", "razorpay",
+      "zerodha", "cred", "ola", "bloomberg", "intuit", "stripe", "airbnb", "doordash", "databricks"
+    ];
+    if (knownList.some(k => cleaned.includes(k) || k.includes(cleaned))) return true;
+    
+    const vowelCount = (cleaned.match(/[aeiou]/g) || []).length;
+    if (cleaned.length >= 4 && vowelCount === 0) return false;
+    if (cleaned.length >= 6 && (vowelCount / cleaned.length) < 0.18) return false;
+    return true;
+  };
+
+  const isRoleValid = (roleName) => {
+    if (!roleName || roleName.trim().length < 2) return false;
+    const cleaned = roleName.trim().toLowerCase();
+    const knownRoles = [
+      "developer", "engineer", "analyst", "architect", "manager", "designer", "consultant",
+      "scientist", "lead", "intern", "associate", "specialist", "tester", "sde", "swe",
+      "fullstack", "frontend", "backend", "devops", "cloud", "data", "qa", "security", "administrator"
+    ];
+    if (knownRoles.some(r => cleaned.includes(r))) return true;
+    
+    const vowelCount = (cleaned.match(/[aeiou]/g) || []).length;
+    if (cleaned.length >= 4 && vowelCount === 0) return false;
+    if (cleaned.length >= 6 && (vowelCount / cleaned.length) < 0.18) return false;
+    return true;
+  };
+
   const startInterview = async () => {
     if (!company.trim() || !role.trim()) {
       toast.error('Please enter target company and role.');
+      return;
+    }
+
+    if (!isCompanyValid(company)) {
+      setNotFoundCompany(company);
+      toast.error("Company not found. Please select a valid company below.");
+      return;
+    }
+
+    if (!isRoleValid(role)) {
+      toast.error("Invalid job role. Please enter a valid job title (e.g. Software Engineer, Developer).");
       return;
     }
     
@@ -88,7 +134,7 @@ const MockInterviews = () => {
       try {
         const checkGenAI = new GoogleGenerativeAI(activeKey);
         const checkModel = checkGenAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-        const checkPrompt = `Verify if "${company}" is a real, legitimate company. If it is fake, fabricated, or gibberish (e.g. "asdfgh"), respond ONLY with {"status":"NOT_FOUND"}. Otherwise respond with {"status":"SUCCESS"}.`;
+        const checkPrompt = `Verify if "${company}" is a real, legitimate company. If it is fake, fabricated, or gibberish (e.g. "asdfgh", "dsegvds"), respond ONLY with {"status":"NOT_FOUND"}. Otherwise respond with {"status":"SUCCESS"}.`;
         const checkRes = await checkModel.generateContent(checkPrompt);
         const checkTxt = checkRes.response.text().replace(/```json/gi, '').replace(/```/g, '').trim();
         if (checkTxt.includes("NOT_FOUND")) {
@@ -98,7 +144,7 @@ const MockInterviews = () => {
           return;
         }
       } catch (err) {
-        console.log("Validation check skipped", err);
+        console.log("Validation check error", err);
       }
     }
     
@@ -444,9 +490,6 @@ const MockInterviews = () => {
       <div className="mb-4 relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800/80 pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="px-3 py-1 bg-[#00B386]/10 text-[#33bb9a] text-xs font-bold uppercase rounded-full border border-[#00B386]/20">
-              FAANG & Fortune 500 Senior Interviewer
-            </span>
             {isStressMode && <span className="px-2.5 py-0.5 bg-red-500/20 text-red-400 text-xs font-bold rounded-full border border-red-500/30">Stress Mode</span>}
           </div>
           <h1 className="text-2xl md:text-3xl font-serif text-white tracking-tight mt-1">CrackNest AI Mock Interview</h1>
