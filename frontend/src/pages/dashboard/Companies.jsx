@@ -265,7 +265,7 @@ const Companies = () => {
               type="text" 
               value={companyInput}
               onChange={(e) => setCompanyInput(e.target.value)}
-              placeholder="Enter company (e.g. Google, Amazon, Cognizant, TCS, Microsoft...)"
+              placeholder="Enter company"
               className="w-full bg-[#111] border border-zinc-800 rounded-2xl py-5 pl-14 pr-36 text-white placeholder-zinc-500 focus:outline-none focus:border-[#00B386] shadow-2xl text-base"
               disabled={isLoading}
             />

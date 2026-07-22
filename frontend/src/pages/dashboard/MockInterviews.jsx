@@ -26,6 +26,7 @@ const MockInterviews = () => {
   const [attachedFile, setAttachedFile] = useState(null);
   const [fileContent, setFileContent] = useState('');
   const [isStressMode, setIsStressMode] = useState(false);
+  const [notFoundCompany, setNotFoundCompany] = useState(null);
   
   const [messages, setMessages] = useState([]);
   const [evaluations, setEvaluations] = useState([]); // Stores per-answer evaluations
@@ -79,8 +80,29 @@ const MockInterviews = () => {
       return;
     }
     
-    setPhase('interview');
+    setNotFoundCompany(null);
     setIsLoading(true);
+
+    const activeKey = apiKey || localStorage.getItem('user_gemini_api_key');
+    if (activeKey) {
+      try {
+        const checkGenAI = new GoogleGenerativeAI(activeKey);
+        const checkModel = checkGenAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const checkPrompt = `Verify if "${company}" is a real, legitimate company. If it is fake, fabricated, or gibberish (e.g. "asdfgh"), respond ONLY with {"status":"NOT_FOUND"}. Otherwise respond with {"status":"SUCCESS"}.`;
+        const checkRes = await checkModel.generateContent(checkPrompt);
+        const checkTxt = checkRes.response.text().replace(/```json/gi, '').replace(/```/g, '').trim();
+        if (checkTxt.includes("NOT_FOUND")) {
+          setNotFoundCompany(company);
+          setIsLoading(false);
+          toast.error("Company not found. Please select a valid company below.");
+          return;
+        }
+      } catch (err) {
+        console.log("Validation check skipped", err);
+      }
+    }
+    
+    setPhase('interview');
     setMessages([]);
     setEvaluations([]);
     setQuestionCount(1);
@@ -468,11 +490,29 @@ const MockInterviews = () => {
                       type="text"
                       value={company}
                       onChange={(e) => setCompany(e.target.value)}
-                      placeholder="e.g. Google, Amazon, Cognizant, TCS, Microsoft..."
+                      placeholder="Enter company"
                       className="w-full pl-11 pr-4 py-3.5 bg-zinc-950 border border-zinc-800 rounded-xl text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-[#00B386]"
                     />
                   </div>
                 </div>
+
+                {/* NOT FOUND SUGGESTED COMPANIES */}
+                {notFoundCompany && (
+                  <div className="bg-red-950/30 border border-red-900/50 p-4 rounded-xl space-y-3 text-center">
+                    <span className="text-xs font-bold text-red-400 block">Company Not Found. Did you mean:</span>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {["Accenture", "Cognizant", "Capgemini", "Infosys", "Google", "Microsoft", "Adobe", "Amazon"].map((compName, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => { setCompany(compName); setNotFoundCompany(null); }}
+                          className="px-3 py-1.5 bg-zinc-900 hover:bg-[#00B386] text-white text-xs font-semibold rounded-lg border border-zinc-700 transition-all cursor-pointer"
+                        >
+                          {compName}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">Target Job Role *</label>
@@ -482,7 +522,7 @@ const MockInterviews = () => {
                       type="text"
                       value={role}
                       onChange={(e) => setRole(e.target.value)}
-                      placeholder="e.g. Software Engineer, Backend Developer..."
+                      placeholder="Enter job role"
                       className="w-full pl-11 pr-4 py-3.5 bg-zinc-950 border border-zinc-800 rounded-xl text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-[#00B386]"
                     />
                   </div>

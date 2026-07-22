@@ -334,7 +334,7 @@ const ResumeAnalyzer = () => {
                   type="text"
                   value={targetCompany}
                   onChange={(e) => setTargetCompany(e.target.value)}
-                  placeholder="e.g. Google, Amazon, Cognizant, TCS..."
+                  placeholder="Enter company"
                   className="w-full pl-10 pr-3 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-[#00B386]"
                 />
               </div>
@@ -351,7 +351,7 @@ const ResumeAnalyzer = () => {
                   type="text"
                   value={jobRole}
                   onChange={(e) => setJobRole(e.target.value)}
-                  placeholder="e.g. Software Engineer, Backend Developer..."
+                  placeholder="Enter job role"
                   className="w-full pl-10 pr-3 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-[#00B386]"
                 />
               </div>
