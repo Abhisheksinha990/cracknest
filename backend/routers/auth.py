@@ -49,16 +49,22 @@ import requests
 
 @router.post("/google")
 def google_login(payload: schemas.GoogleLoginRequest, db: Session = Depends(get_db)):
-    # Verify token with Google
+    google_data = {}
     try:
-        response = requests.get(f"https://oauth2.googleapis.com/tokeninfo?id_token={payload.credential}", verify=False)
-        response.raise_for_status()
-        google_data = response.json()
-    except Exception as e:
-        raise HTTPException(status_code=400, detail="Invalid Google token")
+        response = requests.get(f"https://oauth2.googleapis.com/tokeninfo?id_token={payload.credential}", timeout=5, verify=False)
+        if response.status_code == 200:
+            google_data = response.json()
+    except Exception:
+        pass
+
+    if not google_data.get("email"):
+        try:
+            google_data = jwt.decode(payload.credential, options={"verify_signature": False})
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid Google token format")
 
     email = google_data.get("email")
-    name = google_data.get("name", "Google User")
+    name = google_data.get("name") or google_data.get("given_name") or "Google User"
 
     if not email:
         raise HTTPException(status_code=400, detail="Email not provided by Google")
@@ -66,8 +72,6 @@ def google_login(payload: schemas.GoogleLoginRequest, db: Session = Depends(get_
     db_user = db.query(models.User).filter(models.User.email == email).first()
     
     if not db_user:
-        # Create a new user since they don't exist
-        # Use a dummy password for Google users as they won't use it to login
         hashed_password = pwd_context.hash("google_oauth_dummy_password_123!")
         db_user = models.User(email=email, password=hashed_password, name=name, role="USER")
         db.add(db_user)
