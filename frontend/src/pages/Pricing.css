@@ -1,0 +1,38 @@
+/* Pricing.css */
+.pricing-page {
+  padding: 40px 20px;
+}
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
+  justify-content: center;
+}
+.pricing-card {
+  padding: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-color-secondary);
+}
+.popular {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 20px rgba(0,0,0,0.1);
+}
+.price {
+  font-size: 3rem;
+  font-weight: bold;
+  margin: 20px 0;
+}
+.currency { font-size: 1.5rem; vertical-align: top; }
+.period { font-size: 1rem; color: var(--text-muted); }
+.feature-list { list-style: none; padding: 0; margin-top: 20px; text-align: left; }
+.feature-list li { margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+.popular-badge {
+  background: var(--primary-color);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 20px;
+  display: inline-block;
+  font-size: 0.8rem;
+  margin-bottom: 15px;
+}
