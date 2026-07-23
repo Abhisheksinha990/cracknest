@@ -100,6 +100,20 @@ def get_me(current_user: models.User = Depends(get_current_user)):
 
 
 
+@router.post("/guest")
+def guest_login(db: Session = Depends(get_db)):
+    guest_email = "guest@cracknest.com"
+    db_user = db.query(models.User).filter(models.User.email == guest_email).first()
+    if not db_user:
+        hashed_password = pwd_context.hash("guest_password_123!")
+        db_user = models.User(email=guest_email, password=hashed_password, name="Public Guest User", role="PRO")
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+    
+    token = create_access_token(data={"id": db_user.id, "role": db_user.role})
+    return {"token": token, "user": schemas.UserResponse.model_validate(db_user)}
+
 @router.post("/upgrade")
 def upgrade_to_pro(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     current_user.role = "PRO"
