@@ -77,47 +77,71 @@ const Companies = () => {
         setRoadmapData({
           status: "SUCCESS",
           company: companyInput,
+          dataStatusNotice: "",
           companyOverview: `${companyInput} is a global tech enterprise known for engineering excellence, system scalability, and rigorous multi-stage candidate evaluations.`,
-          hiringPattern: "On-campus and Off-campus drives via Online Assessment followed by 3-4 rounds of technical & HR interviews.",
-          eligibility: "B.Tech / B.E / M.Tech in CS, IT, ECE, or related engineering disciplines.",
-          cgpaRequirement: "6.5+ CGPA or 60%+ throughout 10th, 12th, and Graduation.",
-          skillsRequired: ["Data Structures & Algorithms", "System Architecture & LLD", "SQL & Database Indexing", "Object-Oriented Programming"],
-          rounds: [
-            { round: "Round 1: Online Assessment (OA)", details: "2 Coding Questions (Medium/Hard) + 20 Technical MCQs (DBMS, OS, Computer Networks) on HackerRank or TestGorilla (90 mins)." },
-            { round: "Round 2: Technical Interview I (DSA & Coding)", details: "Live coding on shared whiteboard. Focus on Arrays, Graphs, Trees, and Time/Space complexity optimization (60 mins)." },
-            { round: "Round 3: Technical Interview II (System Design & CS Core)", details: "Low-Level Design (LLD) / High-Level Design (HLD) evaluating database schema design, caching, and microservices architecture (60 mins)." },
-            { round: "Round 4: Managerial & Behavioral Round", details: "Culture fit, leadership principles, past project deep-dive, and situational questions using the STAR framework (45 mins)." }
-          ],
-          oaPattern: "2 Coding Questions + 15-20 CS Fundamentals MCQs",
-          codingDifficulty: "Medium to Hard",
-          interviewDifficulty: "High (Rigorous multi-stage filter)",
-          dsaTopics: ["Dynamic Programming", "Graphs (BFS/DFS)", "Trees & BST", "Heaps & Priority Queues", "Two Pointers / Sliding Window"],
-          csSubjects: ["DBMS & SQL", "Operating Systems", "Computer Networks", "Object-Oriented Programming (OOPs)"],
-          projectsExpected: ["Full-Stack Microservices App with Docker/CI-CD", "High-concurrency Real-Time System or Distributed Cache"],
-          behavioralQuestions: [
-            "Tell me about a time you had a technical disagreement with your team lead.",
-            "Describe a complex production bug you resolved under tight deadlines."
-          ],
-          systemDesign: "Focus on URL Shortener, Notification Service, or Rate Limiter architecture with database sharding and Redis caching.",
-          timeline: "3 to 4 Weeks from OA to Final Offer Letter",
-          preparationRoadmap: {
-            week1: "Master Core DSA (Arrays, Strings, Linked Lists, Trees) & Revise CS Core (DBMS, OS).",
-            week2: "Solve Top 30 Company-Specific LeetCode Medium/Hard questions & practice System Design LLD.",
-            week3: "Build a deployment-ready project & prepare 4 STAR method behavioral stories.",
-            week4: "Conduct mock interviews, revise past interview experiences, and practice whiteboard coding."
+          eligibility: {
+            minCgpa: "6.5+ CGPA or 60%+ throughout 10th, 12th, and Graduation",
+            backlogsAllowed: "0 Active Backlogs allowed at the time of joining",
+            degree: "B.Tech / B.E / M.Tech / MCA / Dual Degree",
+            graduationYear: "2024 / 2025 / 2026 Batch Graduates",
+            branchEligibility: "CS, IT, ECE, EEE, AI/ML & related Circuit Branches"
           },
-          resources: ["LeetCode Top Interview Questions", "NeetCode 150", "Grokking System Design", "GeeksforGeeks Company Archives"],
-          leetcodeDifficulty: "70% Medium, 30% Hard",
-          importantInterviewExperiences: [
-            "Focus heavily on explaining time and space complexity before writing code.",
-            "Expect follow-up questions asking to optimize memory usage without extra space."
+          selectionProcess: [
+            { round: "Round 1", title: "Online Assessment (OA)", details: "2 Coding Questions + 20 CS Core & Aptitude MCQs on HackerRank / Mettl (90-120 mins)." },
+            { round: "Round 2", title: "Technical Interview I (DSA & Problem Solving)", details: "Live coding on shared whiteboard. Focus on Data Structures, Algorithms & Code Optimization (60 mins)." },
+            { round: "Round 3", title: "Technical Interview II (System Design & CS Core)", details: "Low-Level Design (LLD), Object-Oriented Principles, DBMS & Operating Systems (60 mins)." },
+            { round: "Round 4", title: "HR & Managerial Round", details: "Culture fit, leadership principles, past project deep-dive, and situational questions using the STAR framework (45 mins)." }
           ],
-          expectedSalary: "12 LPA - 35 LPA (Depending on tier and role level)",
-          hiringTips: [
-            "Always clarify edge cases with the interviewer before coding.",
-            "Structure behavioral responses strictly with Situation, Task, Action, and Result."
+          onlineAssessment: {
+            aptitude: "15 Questions (Quantitative & Numerical Ability)",
+            logical: "15 Questions (Logical Reasoning & Data Interpretation)",
+            verbal: "10 Questions (Verbal Ability & Grammar)",
+            coding: "2 Questions (Arrays, Strings, Dynamic Programming)",
+            mcqs: "20 Technical MCQs (DBMS, OS, Networks, OOPs)",
+            sql: "2 Query Writing Questions (Joins, Indexing, Grouping)",
+            debugging: "3 Code Snippet Debugging Challenges",
+            essay: "1 Business Writing / Communication Assessment",
+            timeLimit: "90 - 120 Minutes"
+          },
+          codingQuestions: {
+            difficulty: "Medium to Hard",
+            languagesAllowed: ["Java", "Python", "C++", "C#"],
+            expectedTopics: ["Arrays & Strings", "Trees & BST", "Dynamic Programming", "Graph Traversals (BFS/DFS)", "Two Pointers"]
+          },
+          technicalInterview: {
+            java: "JVM Architecture, Garbage Collection, Multithreading, Concurrent Collections",
+            python: "GIL, Decorators, Generators, AsyncIO, Memory Management",
+            cpp: "STL Containers, Pointers & References, Memory Leaks, Virtual Functions",
+            dbms: "SQL Joins, Indexing (B-Trees), ACID Properties, Transactions, Normalization",
+            os: "Process vs Thread, Deadlock Prevention, Paging, Virtual Memory, CPU Scheduling",
+            cn: "TCP/IP Stack, OSI Layers, HTTP/HTTPS, DNS Resolution, Handshake Mechanism",
+            oop: "Encapsulation, Polymorphism, Inheritance, Abstraction, SOLID Principles",
+            projects: "System Architecture, Scalability bottlenecks, Database choice rationale, Microservices",
+            resume: "Deep-dive into past internships, technical stack choices & individual project contributions"
+          },
+          hrInterview: [
+            "Tell me about yourself and your technical background.",
+            "Why do you want to join our engineering team over other tech companies?",
+            "Describe a major conflict or technical disagreement you had in a team project and how you resolved it.",
+            "Where do you see yourself technically in 3 to 5 years?"
           ],
-          latestHiringTrend: "Increasing focus on Cloud Native development, System Scalability, and AI integration."
+          preparationRoadmap: {
+            week1: "Master Core DSA (Arrays, Strings, Linked Lists, Trees) & Revise CS Fundamentals (DBMS, OS).",
+            week2: "Solve Top 30 Company-Specific LeetCode Medium/Hard questions & practice System Design LLD.",
+            week3: "Build a deployment-ready full-stack project & draft 4 STAR-format behavioral stories.",
+            week4: "Conduct mock interviews, revise company archives, and practice whiteboard coding."
+          },
+          importantResources: [
+            "LeetCode Top Company Tagged Question Archives",
+            "NeetCode 150 & Striver SDE Sheet",
+            "Grokking System Design & LLD Blueprints",
+            "GeeksforGeeks Verified Company Archives"
+          ],
+          latestHiringTips: [
+            "Always clarify edge cases and constraints with the interviewer before writing code.",
+            "Explain your time and space complexity trade-offs out loud before implementation.",
+            "Structure all behavioral answers strictly using the STAR framework (Situation, Task, Action, Result)."
+          ]
         });
         setIsLoading(false);
       }, 800);
@@ -130,11 +154,17 @@ const Companies = () => {
       const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
       const prompt = `
-        You are CrackNest Company Roadmap AI.
-        Generate hiring roadmap ONLY for real, existing companies.
+        You are CrackNest Company Preparation AI.
+
+        Never invent hiring information.
+        If exact company hiring data is unavailable, include this exact string in "dataStatusNotice":
+        "Latest verified hiring pattern is unavailable. Showing the most recently verified pattern."
+        Otherwise, set "dataStatusNotice": "".
+
+        Only generate information that is commonly verified.
 
         STRICT NON-EXISTENT COMPANY RULE:
-        Verify if "${companyInput}" actually exists as a real company. If it is a fake, fabricated, or nonsensical string (like random letters, e.g. "asdfgh", "xyz123"), you MUST return EXACTLY this JSON object and NOTHING ELSE:
+        Verify if "${companyInput}" actually exists as a real company. If it is a fake, fabricated, or nonsensical string (like random letters, e.g. "asdfgh", "xyz123"), return EXACTLY:
         {
           "status": "NOT_FOUND",
           "message": "Company not found. Please enter a valid company name."
@@ -144,192 +174,145 @@ const Companies = () => {
         {
           "status": "SUCCESS",
           "company": "${companyInput}",
-          "companyOverview": "<2-3 sentence overview of company culture and scale>",
-          "hiringPattern": "<hiring pattern description>",
-          "eligibility": "<eligibility criteria e.g. B.Tech / M.Tech in CS/IT>",
-          "cgpaRequirement": "<CGPA or percentage criteria e.g. 6.5+ CGPA>",
-          "skillsRequired": ["<skill 1>", "<skill 2>", "<skill 3>"],
+          "dataStatusNotice": "<empty string OR 'Latest verified hiring pattern is unavailable. Showing the most recently verified pattern.'>",
+          "companyOverview": "<Factual 2-3 sentence overview of the company>",
           
-          "rounds": [
-            { "round": "Round 1: Online Assessment (OA)", "details": "<OA pattern, duration, questions>" },
-            { "round": "Round 2: Technical Interview I (DSA & Coding)", "details": "<details>" },
-            { "round": "Round 3: Technical Interview II (System Design & CS Core)", "details": "<details>" },
-            { "round": "Round 4: HR & Behavioral Round", "details": "<details>" }
-          ],
-          
-          "oaPattern": "<OA question distribution e.g., 2 Coding + 20 Aptitude / CS MCQs>",
-          "codingDifficulty": "<e.g. Medium to Hard>",
-          "interviewDifficulty": "<e.g. High (4 Rounds)>",
-          "dsaTopics": ["<dsa topic 1>", "<dsa topic 2>", "<dsa topic 3>"],
-          "csSubjects": ["DBMS", "Operating Systems", "Computer Networks", "OOPs"],
-          "projectsExpected": ["<project 1>", "<project 2>"],
-          "behavioralQuestions": ["<question 1>", "<question 2>"],
-          "systemDesign": "<system design expectations if applicable>",
-          "timeline": "<hiring duration e.g. 3-4 weeks>",
-          
-          "preparationRoadmap": {
-            "week1": "<Week 1 focus>",
-            "week2": "<Week 2 focus>",
-            "week3": "<Week 3 focus>",
-            "week4": "<Week 4 focus>"
+          "eligibility": {
+            "minCgpa": "<Minimum CGPA e.g. 6.5+ CGPA or 60%+>",
+            "backlogsAllowed": "<Backlogs allowed e.g. 0 Active Backlogs>",
+            "degree": "<Degree e.g. B.Tech / B.E / M.Tech / MCA>",
+            "graduationYear": "<Graduation Year e.g. 2024 / 2025 / 2026 Batch>",
+            "branchEligibility": "<Branch eligibility e.g. CS, IT, ECE, EEE & related>"
           },
-          
-          "resources": ["<resource 1>", "<resource 2>"],
-          "leetcodeDifficulty": "<e.g., 70% Medium, 30% Hard>",
-          "importantInterviewExperiences": ["<insight 1>", "<insight 2>"],
-          "expectedSalary": "<salary range e.g. 12 LPA - 35 LPA>",
-          "hiringTips": ["<tip 1>", "<tip 2>"],
-          "latestHiringTrend": "<latest hiring trend>"
+
+          "selectionProcess": [
+            { "round": "Round 1", "title": "Online Assessment (OA)", "details": "<Details>" },
+            { "round": "Round 2", "title": "Technical Interview I", "details": "<Details>" },
+            { "round": "Round 3", "title": "Technical Interview II", "details": "<Details>" },
+            { "round": "Round 4", "title": "HR & Managerial Round", "details": "<Details>" }
+          ],
+
+          "onlineAssessment": {
+            "aptitude": "<e.g. 15 Questions>",
+            "logical": "<e.g. 15 Questions>",
+            "verbal": "<e.g. 10 Questions>",
+            "coding": "<e.g. 2 Questions>",
+            "mcqs": "<e.g. 20 CS Core MCQs>",
+            "sql": "<e.g. 2 Queries>",
+            "debugging": "<e.g. 3 Debugging Questions>",
+            "essay": "<e.g. 1 Writing Test or N/A>",
+            "timeLimit": "<e.g. 90-120 Minutes>"
+          },
+
+          "codingQuestions": {
+            "difficulty": "<e.g. Medium to Hard>",
+            "languagesAllowed": ["Java", "Python", "C++", "C#"],
+            "expectedTopics": ["Arrays & Strings", "Trees & BST", "Dynamic Programming", "Graph Traversals"]
+          },
+
+          "technicalInterview": {
+            "java": "<Java focus topics>",
+            "python": "<Python focus topics>",
+            "cpp": "<C++ focus topics>",
+            "dbms": "<DBMS focus topics>",
+            "os": "<OS focus topics>",
+            "cn": "<CN focus topics>",
+            "oop": "<OOP focus topics>",
+            "projects": "<Projects focus topics>",
+            "resume": "<Resume focus topics>"
+          },
+
+          "hrInterview": [
+            "<FAQ 1>",
+            "<FAQ 2>",
+            "<FAQ 3>",
+            "<FAQ 4>"
+          ],
+
+          "preparationRoadmap": {
+            "week1": "<Week 1 roadmap>",
+            "week2": "<Week 2 roadmap>",
+            "week3": "<Week 3 roadmap>",
+            "week4": "<Week 4 roadmap>"
+          },
+
+          "importantResources": [
+            "<Resource 1>",
+            "<Resource 2>",
+            "<Resource 3>",
+            "<Resource 4>"
+          ],
+
+          "latestHiringTips": [
+            "<Tip 1>",
+            "<Tip 2>",
+            "<Tip 3>"
+          ]
         }
 
-        IMPORTANT:
-        Never give generic advice.
-        Never say:
-        "It depends."
-        "Here are some tips."
-        "I hope this helps."
-        Always return structured markdown.
-        Always behave like a recruiter.
-        Always produce actionable feedback.
-        Never skip scoring.
-        Never answer outside your assigned role.
-        If required information is missing, ask concise follow-up questions before proceeding.
-        Keep responses factual, professional, and tailored to the user's inputs.
+        STRICT RULES:
+        Never invent hiring information.
+        Never hallucinate.
+        If latest data is unknown, set dataStatusNotice to 'Latest verified hiring pattern is unavailable. Showing the most recently verified pattern.'
       `;
 
       const result = await model.generateContent(prompt);
       const text = result.response.text();
-      
-      let cleanJson = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-      const parsedData = JSON.parse(cleanJson);
-      
+      const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      const parsedData = JSON.parse(jsonStr);
+
       if (parsedData.status === "NOT_FOUND") {
         setNotFoundCompany(companyInput);
         setRoadmapData(null);
-        toast.error("Company not found. Please select a valid company below.");
-        return;
+        toast.error("Company not found. Please enter a valid company name.");
+      } else {
+        setRoadmapData(parsedData);
       }
-      
-      setNotFoundCompany(null);
-      setRoadmapData(parsedData);
-    } catch (error) {
-      console.error(error);
-      toast.error(`Could not generate roadmap for ${companyInput}.`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to generate company roadmap. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSelectSuggestedCompany = (compName) => {
-    setCompanyInput(compName);
-    setNotFoundCompany(null);
-    // Auto submit
-    setTimeout(() => {
-      const fakeEvent = { preventDefault: () => {} };
-      // Trigger generate directly with compName
-      setIsLoading(true);
-      if (!apiKey) {
-        setTimeout(() => {
-          setRoadmapData({
-            status: "SUCCESS",
-            company: compName,
-            companyOverview: `${compName} is a global tech leader known for engineering excellence, system scalability, and structured candidate evaluations.`,
-            hiringPattern: "On-campus and Off-campus drives via Online Assessment followed by 3-4 technical & HR rounds.",
-            eligibility: "B.Tech / B.E / M.Tech in CS, IT, ECE, or related engineering disciplines.",
-            cgpaRequirement: "6.5+ CGPA or 60%+ throughout academics.",
-            skillsRequired: ["Data Structures & Algorithms", "System Architecture & LLD", "SQL & Databases", "Object-Oriented Programming"],
-            rounds: [
-              { round: "Round 1: Online Assessment (OA)", details: "2 Coding Questions (Medium/Hard) + 20 Technical MCQs (DBMS, OS, Computer Networks)." },
-              { round: "Round 2: Technical Interview I (DSA & Coding)", details: "Live coding on shared whiteboard focusing on Arrays, Graphs, Trees, and time complexity optimization." },
-              { round: "Round 3: Technical Interview II (System Design & CS Core)", details: "Low-Level Design (LLD) / High-Level Design (HLD) evaluating database design and caching." },
-              { round: "Round 4: Managerial & Behavioral Round", details: "Culture fit, leadership principles, past project deep-dive, and STAR method questions." }
-            ],
-            oaPattern: "2 Coding Questions + 20 CS Fundamentals MCQs",
-            codingDifficulty: "Medium to Hard",
-            interviewDifficulty: "High",
-            dsaTopics: ["Dynamic Programming", "Graphs (BFS/DFS)", "Trees & BST", "Heaps", "Sliding Window"],
-            csSubjects: ["DBMS & SQL", "Operating Systems", "Computer Networks", "OOPs"],
-            projectsExpected: ["Full-Stack Microservices App", "High-concurrency Real-Time System"],
-            behavioralQuestions: [
-              "Tell me about a time you had a technical disagreement with your team lead.",
-              "Describe a complex production bug you resolved under tight deadlines."
-            ],
-            systemDesign: "Focus on URL Shortener, Rate Limiter, or Notification Service architecture.",
-            timeline: "3 to 4 Weeks",
-            preparationRoadmap: {
-              week1: "Master Core DSA & Revise CS Fundamentals (DBMS, OS).",
-              week2: "Solve Top 30 Company-Specific LeetCode Medium/Hard questions.",
-              week3: "Build a deployment-ready project & prepare 4 STAR behavioral stories.",
-              week4: "Conduct mock interviews and review past company interview experiences."
-            },
-            resources: ["LeetCode Top Questions", "NeetCode 150", "Grokking System Design"],
-            leetcodeDifficulty: "70% Medium, 30% Hard",
-            importantInterviewExperiences: [
-              "Always explain time and space complexity before writing code."
-            ],
-            expectedSalary: "12 LPA - 45 LPA",
-            hiringTips: [
-              "Clarify edge cases before writing code."
-            ],
-            latestHiringTrend: "Increasing focus on Cloud Native development and System Scalability."
-          });
-          setIsLoading(false);
-        }, 600);
-      }
-    }, 50);
-  };
-
   return (
-    <BackgroundPaths>
-      <div className="w-full min-h-screen flex flex-col pt-28 px-4 md:px-10 pb-20 relative z-10 text-zinc-100">
+    <BackgroundPaths title="CrackNest Company Roadmaps">
+      <div className="container mx-auto px-4 py-12 relative z-10 min-h-screen">
         
-        {/* Header */}
-        <div className="mb-10 text-center max-w-3xl mx-auto">
-          <span className="px-3.5 py-1 bg-[#00B386]/10 text-[#33bb9a] text-xs font-bold uppercase rounded-full border border-[#00B386]/20">
+        <div className="text-center max-w-3xl mx-auto mb-10">
+          <span className="px-3 py-1 bg-[#00B386]/10 text-[#33bb9a] text-xs font-bold uppercase tracking-wider rounded-full border border-[#00B386]/20">
             Real Company Hiring Intelligence
           </span>
-          <motion.h1 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-5xl font-serif text-white tracking-tight mt-3 mb-3"
-          >
+          <h1 className="text-4xl md:text-5xl font-bold text-white mt-4 mb-3">
             CrackNest Company <span className="text-[#33bb9a] italic">Roadmaps</span>
-          </motion.h1>
-          <p className="text-zinc-400 text-sm md:text-base">
-            Enter any real company to instantly generate hiring patterns, round breakdowns, DSA topics, salary ranges, and a 4-week preparation plan.
+          </h1>
+          <p className="text-zinc-400 text-sm">
+            Enter any verified company to generate hiring patterns, eligibility, round breakdowns, DSA topics, and a 4-week preparation plan.
           </p>
         </div>
 
-        {/* Input Bar */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-2xl mx-auto w-full mb-12"
-        >
-          <form onSubmit={handleGenerate} className="relative flex items-center">
-            <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-zinc-500">
-              <Building2 size={22} />
-            </div>
-            <input 
-              type="text" 
+        <form onSubmit={handleGenerate} className="max-w-xl mx-auto mb-10">
+          <div className="relative flex items-center">
+            <Building2 size={20} className="absolute left-4 text-zinc-500" />
+            <input
+              type="text"
               value={companyInput}
               onChange={(e) => setCompanyInput(e.target.value)}
-              placeholder="Enter company"
-              className="w-full bg-[#111] border border-zinc-800 rounded-2xl py-5 pl-14 pr-36 text-white placeholder-zinc-500 focus:outline-none focus:border-[#00B386] shadow-2xl text-base"
-              disabled={isLoading}
+              placeholder="Enter company name (e.g. Google, TCS, Accenture, Amazon)"
+              className="w-full pl-12 pr-32 py-4 bg-[#111] border border-white/10 rounded-2xl text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-[#00B386] transition-colors shadow-2xl"
             />
-            <button 
+            <button
               type="submit"
-              disabled={!companyInput.trim() || isLoading}
-              className="absolute right-3 top-1/2 -translate-y-1/2 h-[calc(100%-24px)] px-6 bg-[#009973] hover:bg-[#00B386] text-white rounded-xl font-bold flex items-center justify-center transition-colors disabled:opacity-40 shadow-md cursor-pointer text-sm"
+              disabled={isLoading}
+              className="absolute right-2 px-5 py-2.5 bg-[#00B386] hover:bg-[#009b74] text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Search size={18} />}
-              <span className="ml-2 hidden sm:inline">{isLoading ? 'Analyzing...' : 'Generate'}</span>
+              {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+              <span>{isLoading ? 'Searching...' : 'Generate'}</span>
             </button>
-          </form>
-        </motion.div>
+          </div>
+        </form>
 
-        {/* NOT FOUND CARD */}
         {notFoundCompany && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -348,7 +331,6 @@ const Companies = () => {
           </motion.div>
         )}
 
-        {/* Results */}
         <AnimatePresence mode="wait">
           {roadmapData && !isLoading && (
             <motion.div
@@ -359,158 +341,202 @@ const Companies = () => {
               className="max-w-6xl mx-auto w-full space-y-8"
             >
               
-              {/* TOP HEADER CARD */}
-              <div className="bg-[#111] border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-14 h-14 bg-[#00B386]/10 rounded-2xl flex items-center justify-center text-[#33bb9a] border border-[#00B386]/20">
-                      <Building2 size={30} />
-                    </div>
-                    <div>
-                      <h2 className="text-3xl font-serif font-bold text-white">{roadmapData.company}</h2>
-                      <span className="text-xs text-zinc-400 font-mono">Hiring Timeline: {roadmapData.timeline || '3-4 Weeks'}</span>
-                    </div>
-                  </div>
-                  <p className="text-zinc-300 text-sm leading-relaxed pt-2">
-                    {roadmapData.companyOverview}
-                  </p>
+              {roadmapData.dataStatusNotice && (
+                <div className="bg-yellow-500/10 border border-yellow-500/30 p-4 rounded-xl text-yellow-300 text-xs font-medium flex items-center gap-2">
+                  <ShieldAlert size={16} />
+                  <span>{roadmapData.dataStatusNotice}</span>
                 </div>
+              )}
 
-                {/* At-a-Glance Stats */}
-                <div className="bg-zinc-950 p-5 rounded-xl border border-zinc-800 space-y-3 text-xs">
-                  <div className="flex justify-between border-b border-zinc-800/80 pb-2">
-                    <span className="text-zinc-400">Expected Salary:</span>
-                    <span className="text-[#33bb9a] font-bold">{roadmapData.expectedSalary}</span>
+              <div className="bg-[#111] border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-14 h-14 bg-[#00B386]/10 rounded-2xl flex items-center justify-center text-[#33bb9a] border border-[#00B386]/20">
+                    <Building2 size={30} />
                   </div>
-                  <div className="flex justify-between border-b border-zinc-800/80 pb-2">
-                    <span className="text-zinc-400">Coding Difficulty:</span>
-                    <span className="text-yellow-400 font-bold">{roadmapData.codingDifficulty}</span>
+                  <div>
+                    <h2 className="text-3xl font-bold text-white">1. Company Overview: {roadmapData.company}</h2>
+                    <span className="text-xs text-zinc-400 font-mono">CrackNest Company Preparation AI</span>
                   </div>
-                  <div className="flex justify-between border-b border-zinc-800/80 pb-2">
-                    <span className="text-zinc-400">CGPA Cut-off:</span>
-                    <span className="text-white font-bold">{roadmapData.cgpaRequirement}</span>
+                </div>
+                <p className="text-zinc-300 text-sm leading-relaxed">
+                  {roadmapData.companyOverview}
+                </p>
+              </div>
+
+              <div className="bg-[#111] border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl">
+                <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                  <Award size={22} className="text-[#33bb9a]" />
+                  2. Eligibility Criteria
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                  <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-1">
+                    <span className="text-zinc-400 block font-semibold">Minimum CGPA / Percentage:</span>
+                    <span className="text-white font-bold text-sm">{roadmapData.eligibility?.minCgpa || '6.5+ CGPA'}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-zinc-400">LeetCode Benchmark:</span>
-                    <span className="text-blue-400 font-bold">{roadmapData.leetcodeDifficulty}</span>
+                  <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-1">
+                    <span className="text-zinc-400 block font-semibold">Backlogs Allowed:</span>
+                    <span className="text-yellow-400 font-bold text-sm">{roadmapData.eligibility?.backlogsAllowed || '0 Active Backlogs'}</span>
+                  </div>
+                  <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-1">
+                    <span className="text-zinc-400 block font-semibold">Eligible Degrees:</span>
+                    <span className="text-white font-bold text-sm">{roadmapData.eligibility?.degree || 'B.Tech / B.E / M.Tech'}</span>
+                  </div>
+                  <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-1">
+                    <span className="text-zinc-400 block font-semibold">Graduation Batch:</span>
+                    <span className="text-blue-400 font-bold text-sm">{roadmapData.eligibility?.graduationYear || '2024 / 2025 / 2026 Batch'}</span>
+                  </div>
+                  <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-1 md:col-span-2">
+                    <span className="text-zinc-400 block font-semibold">Branch Eligibility:</span>
+                    <span className="text-emerald-400 font-bold text-sm">{roadmapData.eligibility?.branchEligibility || 'CS, IT, ECE, EEE & Circuit Branches'}</span>
                   </div>
                 </div>
               </div>
 
-              {/* MAIN CONTENT GRID */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                
-                {/* Left 2 Columns: Interview Rounds & 4-Week Roadmap */}
-                <div className="lg:col-span-2 space-y-8">
-                  
-                  {/* Interview Rounds */}
-                  <div className="bg-[#111] border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl">
-                    <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                      <ListChecks size={22} className="text-[#33bb9a]" />
-                      Interview Rounds & OA Pattern
-                    </h3>
-                    
-                    <div className="mb-6 bg-zinc-950 p-4 rounded-xl border border-zinc-800 text-xs">
-                      <span className="font-bold text-white uppercase block mb-1">Online Assessment (OA) Pattern:</span>
-                      <p className="text-zinc-300">{roadmapData.oaPattern}</p>
+              <div className="bg-[#111] border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl">
+                <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                  <ListChecks size={22} className="text-[#33bb9a]" />
+                  3. Selection Process
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {(roadmapData.selectionProcess || []).map((roundItem, idx) => (
+                    <div key={idx} className="bg-zinc-950 p-5 rounded-xl border border-zinc-800 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-1 bg-[#00B386]/10 text-[#33bb9a] text-xs font-bold rounded-lg border border-[#00B386]/20">
+                          {roundItem.round}
+                        </span>
+                        <h4 className="font-bold text-white text-sm">{roundItem.title}</h4>
+                      </div>
+                      <p className="text-zinc-300 text-xs leading-relaxed pt-1">{roundItem.details}</p>
                     </div>
-
-                    <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-zinc-800 before:to-transparent">
-                      {(roadmapData.rounds || []).map((step, index) => (
-                        <div key={index} className="relative flex items-start group">
-                          <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-[#111] bg-zinc-900 text-[#33bb9a] shadow shrink-0 z-10">
-                            <span className="text-xs font-bold">{index + 1}</span>
-                          </div>
-                          <div className="ml-5 w-full p-5 rounded-xl border border-zinc-800 bg-zinc-950 hover:border-zinc-700 transition-colors shadow-sm">
-                            <h4 className="font-bold text-white text-base mb-1.5">{step.round}</h4>
-                            <p className="text-zinc-400 text-xs leading-relaxed">{step.details}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* 4-Week Preparation Roadmap */}
-                  <div className="bg-[#111] border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl">
-                    <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                      <Calendar size={22} className="text-blue-400" />
-                      4-Week Actionable Preparation Plan
-                    </h3>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {Object.entries(roadmapData.preparationRoadmap || {}).map(([weekKey, plan]) => (
-                        <div key={weekKey} className="bg-zinc-950 p-5 rounded-xl border border-zinc-800 space-y-2">
-                          <span className="px-2.5 py-1 bg-blue-500/10 text-blue-400 text-[10px] font-bold uppercase rounded-md border border-blue-500/20">
-                            {weekKey.replace(/([A-Z])/g, ' $1')}
-                          </span>
-                          <p className="text-xs text-zinc-300 leading-relaxed pt-1">{plan}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
+                  ))}
                 </div>
+              </div>
 
-                {/* Right Column: Topics, CS Core, Behavioral & Tips */}
-                <div className="space-y-6">
-                  
-                  {/* Must-Know DSA Topics */}
-                  <div className="bg-[#111] border border-white/10 rounded-2xl p-6">
-                    <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
-                      <Code size={18} className="text-[#33bb9a]" />
-                      High-Frequency DSA Topics
-                    </h3>
+              <div className="bg-[#111] border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl">
+                <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                  <Cpu size={22} className="text-purple-400" />
+                  4. Online Assessment (OA) Pattern
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                  {Object.entries(roadmapData.onlineAssessment || {}).map(([key, val]) => (
+                    <div key={key} className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-1">
+                      <span className="text-zinc-400 capitalize block font-semibold">{key.replace(/([A-Z])/g, ' $1')}:</span>
+                      <span className="text-zinc-200 font-medium">{val}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-[#111] border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl">
+                <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                  <Code size={22} className="text-[#33bb9a]" />
+                  5. Coding Questions Expectations
+                </h3>
+                <div className="space-y-4 text-xs">
+                  <div className="flex items-center gap-4 bg-zinc-950 p-4 rounded-xl border border-zinc-800">
+                    <span className="text-zinc-400 font-bold">Difficulty:</span>
+                    <span className="px-3 py-1 bg-yellow-500/10 text-yellow-400 font-bold rounded-lg border border-yellow-500/20">
+                      {roadmapData.codingQuestions?.difficulty || 'Medium to Hard'}
+                    </span>
+                  </div>
+                  <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-2">
+                    <span className="text-zinc-400 font-bold block">Languages Allowed:</span>
                     <div className="flex flex-wrap gap-2">
-                      {(roadmapData.dsaTopics || []).map((topic, idx) => (
-                        <span key={idx} className="px-3 py-1 bg-zinc-950 border border-zinc-800 text-zinc-200 text-xs rounded-lg font-medium">
+                      {(roadmapData.codingQuestions?.languagesAllowed || ["Java", "Python", "C++"]).map((lang, idx) => (
+                        <span key={idx} className="px-3 py-1 bg-zinc-900 text-white rounded-lg border border-zinc-700 font-mono">
+                          {lang}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-2">
+                    <span className="text-zinc-400 font-bold block">Expected Topics:</span>
+                    <div className="flex flex-wrap gap-2">
+                      {(roadmapData.codingQuestions?.expectedTopics || []).map((topic, idx) => (
+                        <span key={idx} className="px-3 py-1 bg-[#00B386]/10 text-[#33bb9a] rounded-lg border border-[#00B386]/20 font-medium">
                           ⚡ {topic}
                         </span>
                       ))}
                     </div>
                   </div>
-
-                  {/* CS Fundamentals & System Design */}
-                  <div className="bg-[#111] border border-white/10 rounded-2xl p-6 space-y-4">
-                    <h3 className="text-base font-bold text-white flex items-center gap-2">
-                      <BookOpen size={18} className="text-purple-400" />
-                      CS Core & System Design
-                    </h3>
-                    <div className="text-xs space-y-2">
-                      <span className="font-bold text-zinc-400 uppercase block">Core Subjects:</span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {(roadmapData.csSubjects || []).map((sub, idx) => (
-                          <span key={idx} className="px-2.5 py-1 bg-purple-500/10 text-purple-300 rounded-md border border-purple-500/20">
-                            {sub}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    {roadmapData.systemDesign && (
-                      <div className="text-xs pt-2 border-t border-zinc-800">
-                        <span className="font-bold text-zinc-400 uppercase block mb-1">System Design Expectation:</span>
-                        <p className="text-zinc-300">{roadmapData.systemDesign}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Behavioral & Hiring Tips */}
-                  <div className="bg-[#111] border border-white/10 rounded-2xl p-6 space-y-4">
-                    <h3 className="text-base font-bold text-white flex items-center gap-2">
-                      <Lightbulb size={18} className="text-yellow-400" />
-                      Hiring Tips & Culture Fit
-                    </h3>
-                    <ul className="space-y-2 text-xs text-zinc-300">
-                      {(roadmapData.hiringTips || []).map((tip, idx) => (
-                        <li key={idx} className="bg-zinc-950 p-3 rounded-lg border border-zinc-800 flex items-start gap-2">
-                          <span className="text-yellow-400">💡</span>
-                          <span>{tip}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
                 </div>
+              </div>
 
+              <div className="bg-[#111] border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl">
+                <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                  <BookOpen size={22} className="text-blue-400" />
+                  6. Technical Interview Core Focus
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                  {Object.entries(roadmapData.technicalInterview || {}).map(([subject, details]) => (
+                    <div key={subject} className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-1">
+                      <span className="text-[#33bb9a] uppercase font-bold tracking-wider block">{subject}:</span>
+                      <p className="text-zinc-300 leading-relaxed">{details}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-[#111] border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl">
+                <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                  <Briefcase size={22} className="text-pink-400" />
+                  7. HR & Behavioral Interview FAQs
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                  {(roadmapData.hrInterview || []).map((faq, idx) => (
+                    <div key={idx} className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 flex items-start gap-3">
+                      <span className="text-pink-400 font-bold text-base">Q{idx + 1}.</span>
+                      <p className="text-zinc-200 leading-relaxed font-medium pt-0.5">{faq}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-[#111] border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl">
+                <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                  <Calendar size={22} className="text-emerald-400" />
+                  8. 4-Week Preparation Roadmap
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {Object.entries(roadmapData.preparationRoadmap || {}).map(([weekKey, plan]) => (
+                    <div key={weekKey} className="bg-zinc-950 p-5 rounded-xl border border-zinc-800 space-y-2">
+                      <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 text-xs font-bold uppercase rounded-lg border border-emerald-500/20">
+                        {weekKey.replace(/([A-Z])/g, ' $1')}
+                      </span>
+                      <p className="text-xs text-zinc-300 leading-relaxed pt-1">{plan}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-[#111] border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl">
+                <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                  <BookOpen size={22} className="text-indigo-400" />
+                  9. Important Recommended Resources
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                  {(roadmapData.importantResources || []).map((resource, idx) => (
+                    <div key={idx} className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 flex items-center gap-3 text-zinc-200">
+                      <span className="text-indigo-400 text-base">📌</span>
+                      <span className="font-medium">{resource}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-[#111] border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl">
+                <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                  <Lightbulb size={22} className="text-yellow-400" />
+                  10. Latest Verified Hiring Tips
+                </h3>
+                <div className="space-y-3 text-xs">
+                  {(roadmapData.latestHiringTips || []).map((tip, idx) => (
+                    <div key={idx} className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 flex items-start gap-3 text-zinc-200">
+                      <span className="text-yellow-400 text-base">💡</span>
+                      <span className="leading-relaxed pt-0.5">{tip}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
 
             </motion.div>
