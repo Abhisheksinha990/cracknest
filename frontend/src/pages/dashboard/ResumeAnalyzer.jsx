@@ -282,7 +282,6 @@ const ResumeAnalyzer = () => {
             <span className="px-3 py-1 bg-[#00B386]/10 text-[#33bb9a] text-xs font-bold uppercase rounded-full border border-[#00B386]/20">
               Top Recruiter ATS Engine
             </span>
-            <span className="text-zinc-500 text-xs font-mono">Google • Amazon • Microsoft • Tier-1 Standards</span>
           </div>
           <h1 className="text-3xl md:text-4xl font-serif text-white tracking-tight mt-2">CrackNest AI Resume Scanner</h1>
           <p className="text-zinc-400 mt-1 text-sm max-w-2xl">
