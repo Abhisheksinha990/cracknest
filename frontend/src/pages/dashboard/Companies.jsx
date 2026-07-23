@@ -318,14 +318,14 @@ const Companies = () => {
 
   return (
     <BackgroundPaths>
-      <div className="container mx-auto px-4 pt-36 pb-20 relative z-10 min-h-screen">
+      <div className="container mx-auto px-4 pt-44 md:pt-48 pb-24 relative z-10 min-h-screen">
         
         {/* HEADER SECTION */}
         <div className="text-center max-w-3xl mx-auto mb-12">
-          <span className="px-4 py-1.5 bg-[#00B386]/10 text-[#33bb9a] text-xs font-bold uppercase tracking-wider rounded-full border border-[#00B386]/20">
+          <span className="inline-block px-4 py-1.5 bg-[#00B386]/10 text-[#33bb9a] text-xs font-bold uppercase tracking-wider rounded-full border border-[#00B386]/20 mb-4">
             5-Stage Verified Hiring Pipeline
           </span>
-          <h1 className="text-4xl md:text-5xl font-bold text-white mt-5 mb-4 tracking-tight">
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">
             CrackNest Company <span className="text-[#33bb9a] italic">Roadmaps</span>
           </h1>
           <p className="text-zinc-400 text-sm md:text-base leading-relaxed">
