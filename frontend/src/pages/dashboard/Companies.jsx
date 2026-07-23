@@ -330,13 +330,13 @@ const Companies = () => {
         </motion.div>
 
         {/* NOT FOUND CARD */}
-        {notFoundCompany && !isLoading && !roadmapData && (
+        {notFoundCompany && (
           <motion.div
-            initial={{ opacity: 0, y: 15 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="max-w-2xl mx-auto w-full bg-red-950/20 border border-red-900/40 rounded-2xl p-8 shadow-2xl text-center space-y-6 mb-12"
+            className="mt-8 p-6 bg-red-950/20 border border-red-900/40 rounded-2xl text-center space-y-3 max-w-xl mx-auto"
           >
-            <div className="w-14 h-14 bg-red-500/10 text-red-400 rounded-full flex items-center justify-center mx-auto border border-red-500/20">
+            <div className="w-12 h-12 bg-red-900/30 text-red-400 rounded-xl flex items-center justify-center mx-auto">
               <ShieldAlert size={28} />
             </div>
             <div>
@@ -344,22 +344,6 @@ const Companies = () => {
               <p className="text-xs text-zinc-400">
                 "{notFoundCompany}" is not recognized in our verified hiring database. Please enter a valid company name.
               </p>
-            </div>
-
-            <div className="pt-2 border-t border-red-900/30">
-              <span className="text-xs font-bold text-zinc-300 uppercase tracking-wider block mb-3">Did you mean:</span>
-              <div className="flex flex-wrap justify-center gap-2.5">
-                {["Accenture", "Cognizant", "Capgemini", "Infosys", "Google", "Microsoft", "Adobe", "Amazon"].map((compName, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleSelectSuggestedCompany(compName)}
-                    className="px-4 py-2 bg-zinc-900 hover:bg-[#00B386] text-white hover:text-white text-xs font-semibold rounded-xl border border-zinc-700 hover:border-[#00B386] transition-all shadow-md cursor-pointer flex items-center gap-1.5"
-                  >
-                    <span>{compName}</span>
-                    <ArrowRight size={12} />
-                  </button>
-                ))}
-              </div>
             </div>
           </motion.div>
         )}

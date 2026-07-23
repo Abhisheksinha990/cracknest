@@ -571,21 +571,10 @@ const MockInterviews = () => {
                   </div>
                 </div>
 
-                {/* NOT FOUND SUGGESTED COMPANIES */}
+                {/* NOT FOUND WARNING */}
                 {notFoundCompany && (
-                  <div className="bg-red-950/30 border border-red-900/50 p-4 rounded-xl space-y-3 text-center">
-                    <span className="text-xs font-bold text-red-400 block">Company Not Found. Did you mean:</span>
-                    <div className="flex flex-wrap justify-center gap-2">
-                      {["Accenture", "Cognizant", "Capgemini", "Infosys", "Google", "Microsoft", "Adobe", "Amazon"].map((compName, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => { setCompany(compName); setNotFoundCompany(null); }}
-                          className="px-3 py-1.5 bg-zinc-900 hover:bg-[#00B386] text-white text-xs font-semibold rounded-lg border border-zinc-700 transition-all cursor-pointer"
-                        >
-                          {compName}
-                        </button>
-                      ))}
-                    </div>
+                  <div className="bg-red-950/30 border border-red-900/50 p-4 rounded-xl text-center">
+                    <span className="text-xs font-bold text-red-400 block">Company Not Found. Please enter a valid company name.</span>
                   </div>
                 )}
 
