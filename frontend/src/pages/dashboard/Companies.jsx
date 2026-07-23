@@ -317,50 +317,56 @@ const Companies = () => {
   };
 
   return (
-    <BackgroundPaths title="CrackNest Company Roadmaps">
-      <div className="container mx-auto px-4 py-12 relative z-10 min-h-screen">
+    <BackgroundPaths>
+      <div className="container mx-auto px-4 pt-36 pb-20 relative z-10 min-h-screen">
         
         {/* HEADER SECTION */}
-        <div className="text-center max-w-3xl mx-auto mb-10">
-          <span className="px-3 py-1 bg-[#00B386]/10 text-[#33bb9a] text-xs font-bold uppercase tracking-wider rounded-full border border-[#00B386]/20">
+        <div className="text-center max-w-3xl mx-auto mb-12">
+          <span className="px-4 py-1.5 bg-[#00B386]/10 text-[#33bb9a] text-xs font-bold uppercase tracking-wider rounded-full border border-[#00B386]/20">
             5-Stage Verified Hiring Pipeline
           </span>
-          <h1 className="text-4xl md:text-5xl font-bold text-white mt-4 mb-3">
+          <h1 className="text-4xl md:text-5xl font-bold text-white mt-5 mb-4 tracking-tight">
             CrackNest Company <span className="text-[#33bb9a] italic">Roadmaps</span>
           </h1>
-          <p className="text-zinc-400 text-sm">
+          <p className="text-zinc-400 text-sm md:text-base leading-relaxed">
             Enter Company & Target Role to generate a verified, research-backed preparation roadmap.
           </p>
         </div>
 
         {/* SEARCH FORM (COMPANY + ROLE) */}
-        <form onSubmit={handleGenerate} className="max-w-2xl mx-auto mb-10 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="relative flex items-center">
-              <Building2 size={20} className="absolute left-4 text-zinc-500" />
-              <input
-                type="text"
-                value={companyInput}
-                onChange={(e) => setCompanyInput(e.target.value)}
-                placeholder="Enter Your Company"
-                className="w-full pl-12 pr-4 py-3.5 bg-[#111] border border-white/10 rounded-2xl text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-[#00B386] transition-colors shadow-2xl"
-              />
+        <form onSubmit={handleGenerate} className="max-w-2xl mx-auto mb-14 bg-[#111]/80 backdrop-blur-xl p-6 md:p-8 rounded-3xl border border-white/10 shadow-2xl space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+              <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">Target Company *</label>
+              <div className="relative flex items-center">
+                <Building2 size={20} className="absolute left-4 text-zinc-500 pointer-events-none" />
+                <input
+                  type="text"
+                  value={companyInput}
+                  onChange={(e) => setCompanyInput(e.target.value)}
+                  placeholder="Enter Your Company"
+                  className="w-full pl-12 pr-4 py-4 bg-zinc-950 border border-zinc-800 rounded-xl text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-[#00B386] transition-colors"
+                />
+              </div>
             </div>
-            <div className="relative flex items-center">
-              <Briefcase size={20} className="absolute left-4 text-zinc-500" />
-              <input
-                type="text"
-                value={roleInput}
-                onChange={(e) => setRoleInput(e.target.value)}
-                placeholder="Enter Job Role"
-                className="w-full pl-12 pr-4 py-3.5 bg-[#111] border border-white/10 rounded-2xl text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-[#00B386] transition-colors shadow-2xl"
-              />
+            <div>
+              <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">Target Job Role *</label>
+              <div className="relative flex items-center">
+                <Briefcase size={20} className="absolute left-4 text-zinc-500 pointer-events-none" />
+                <input
+                  type="text"
+                  value={roleInput}
+                  onChange={(e) => setRoleInput(e.target.value)}
+                  placeholder="Enter Job Role"
+                  className="w-full pl-12 pr-4 py-4 bg-zinc-950 border border-zinc-800 rounded-xl text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-[#00B386] transition-colors"
+                />
+              </div>
             </div>
           </div>
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-4 bg-[#00B386] hover:bg-[#009b74] text-white text-sm font-bold rounded-2xl transition-all shadow-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            className="w-full py-4 bg-[#00B386] hover:bg-[#009b74] text-white text-sm font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
           >
             {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Search size={18} />}
             <span>{isLoading ? 'Fetching Hiring Data & Generating Roadmap...' : 'Generate Verified Roadmap'}</span>
