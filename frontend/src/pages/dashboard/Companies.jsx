@@ -20,19 +20,41 @@ const Companies = () => {
   const isCompanyValid = (name) => {
     if (!name || name.trim().length < 2) return false;
     const cleaned = name.trim().toLowerCase();
+
     const knownList = [
       "google", "microsoft", "amazon", "apple", "meta", "facebook", "netflix", "uber", "adobe",
       "accenture", "cognizant", "capgemini", "infosys", "tcs", "tata consultancy services",
       "wipro", "deloitte", "flipkart", "atlassian", "oracle", "ibm", "cisco", "salesforce",
       "intel", "nvidia", "amd", "paypal", "paytm", "phonepe", "walmart", "target", "jpmorgan",
       "goldman sachs", "morgan stanley", "barclays", "hsbc", "zomato", "swiggy", "razorpay",
-      "zerodha", "cred", "ola", "bloomberg", "intuit", "stripe", "airbnb", "doordash", "databricks"
+      "zerodha", "cred", "ola", "bloomberg", "intuit", "stripe", "airbnb", "doordash", "databricks",
+      "tesla", "spotify", "twitter", "x", "linkedin", "github", "gitlab", "notion", "figma", "slack",
+      "zoom", "shopify", "canva", "palantir", "snowflake", "twilio", "square", "block", "palo alto",
+      "crowdstrike", "cloudflare", "datadog", "mongo", "mongodb", "elastic", "confluent", "hashicorp",
+      "unity", "epic games", "ea", "electronic arts", "ubisoft", "sony", "samsung", "lg", "dell", "hp",
+      "lenovo", "asus", "acer", "qualcomm", "broadcom", "arm", "tsmc", "asml", "applied materials",
+      "synopsys", "cadence", "microchip", "texas instruments", "stmicroelectronics", "nxp", "infineon",
+      "boeing", "airbus", "lockheed", "general electric", "ge", "siemens", "schneider", "abb", "honeywell",
+      "3m", "caterpillar", "john deere", "ford", "gm", "general motors", "toyota", "honda", "hyundai",
+      "bmw", "mercedes", "audi", "porsche", "volkswagen", "volvo", "nissan", "subaru", "mazda", "ferrari",
+      "shell", "bp", "total", "exxon", "chevron", "aramco", "reliance", "adani", "tata", "birla",
+      "pfizer", "moderna", "johnson", "roche", "novartis", "merck", "abbvie", "bayer", "sanofi", "gsk",
+      "mckinsey", "bain", "bcg", "pwc", "kpmg", "ey", "ernst & young"
     ];
-    if (knownList.some(k => cleaned.includes(k) || k.includes(cleaned))) return true;
-    
+
+    if (knownList.some(k => cleaned === k || cleaned.includes(k) || k.includes(cleaned))) return true;
+
+    // Reject consecutive consonants (3+ consonants in a row, e.g. rgh, ghr, rgr, sdf)
+    if (/[bcdfghjklmnpqrstvwxyz]{3,}/i.test(cleaned)) return false;
+
+    // Reject repeated characters (3+ identical characters in a row, e.g. aaaa, zzz)
+    if (/(.)\1{2,}/.test(cleaned)) return false;
+
+    // Require at least 25% vowels for unlisted multi-letter words
     const vowelCount = (cleaned.match(/[aeiou]/g) || []).length;
-    if (cleaned.length >= 4 && vowelCount === 0) return false;
-    if (cleaned.length >= 6 && (vowelCount / cleaned.length) < 0.18) return false;
+    if (vowelCount === 0) return false;
+    if (cleaned.length >= 4 && (vowelCount / cleaned.length) < 0.25) return false;
+
     return true;
   };
 
