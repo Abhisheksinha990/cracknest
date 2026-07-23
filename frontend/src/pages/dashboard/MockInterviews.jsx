@@ -101,16 +101,19 @@ const MockInterviews = () => {
 
     if (knownList.some(k => cleaned === k || cleaned.includes(k) || k.includes(cleaned))) return true;
 
+    // Reject numbers in unlisted company names (e.g. eryrey5ey5e, test123, 5ey5e)
+    if (/\d/.test(cleaned)) return false;
+
     // Reject consecutive consonants (3+ consonants in a row, e.g. rgh, ghr, rgr, sdf)
     if (/[bcdfghjklmnpqrstvwxyz]{3,}/i.test(cleaned)) return false;
 
     // Reject repeated characters (3+ identical characters in a row, e.g. aaaa, zzz)
     if (/(.)\1{2,}/.test(cleaned)) return false;
 
-    // Require at least 25% vowels for unlisted multi-letter words
+    // Require at least 35% vowels for unlisted multi-letter words
     const vowelCount = (cleaned.match(/[aeiou]/g) || []).length;
     if (vowelCount === 0) return false;
-    if (cleaned.length >= 4 && (vowelCount / cleaned.length) < 0.25) return false;
+    if (cleaned.length >= 4 && (vowelCount / cleaned.length) < 0.35) return false;
 
     return true;
   };

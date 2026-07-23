@@ -65,12 +65,19 @@ const Companies = () => {
 
     if (knownList.some(k => cleaned === k || cleaned.includes(k) || k.includes(cleaned))) return true;
 
+    // Reject numbers in unlisted company names (e.g. eryrey5ey5e, test123, 5ey5e)
+    if (/\d/.test(cleaned)) return false;
+
+    // Reject consecutive consonants (3+ consonants in a row, e.g. rgh, ghr, rgr, sdf)
     if (/[bcdfghjklmnpqrstvwxyz]{3,}/i.test(cleaned)) return false;
+
+    // Reject repeated characters (3+ identical characters in a row, e.g. aaaa, zzz)
     if (/(.)\1{2,}/.test(cleaned)) return false;
 
+    // Require at least 35% vowels for unlisted multi-letter words
     const vowelCount = (cleaned.match(/[aeiou]/g) || []).length;
     if (vowelCount === 0) return false;
-    if (cleaned.length >= 4 && (vowelCount / cleaned.length) < 0.25) return false;
+    if (cleaned.length >= 4 && (vowelCount / cleaned.length) < 0.35) return false;
 
     return true;
   };
@@ -88,7 +95,7 @@ const Companies = () => {
     if (!isCompanyValid(companyInput)) {
       setNotFoundCompany(companyInput);
       setRoadmapData(null);
-      toast.error("Company not found. Please select a valid company name.");
+      toast.error("Company not found. Please enter a valid company name.");
       return;
     }
 
@@ -335,7 +342,7 @@ const Companies = () => {
                 type="text"
                 value={companyInput}
                 onChange={(e) => setCompanyInput(e.target.value)}
-                placeholder="Target Company (e.g. Google, TCS, Accenture)"
+                placeholder="Enter Your Company"
                 className="w-full pl-12 pr-4 py-3.5 bg-[#111] border border-white/10 rounded-2xl text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-[#00B386] transition-colors shadow-2xl"
               />
             </div>
@@ -345,7 +352,7 @@ const Companies = () => {
                 type="text"
                 value={roleInput}
                 onChange={(e) => setRoleInput(e.target.value)}
-                placeholder="Target Role (e.g. Software Engineer, SDE)"
+                placeholder="Enter Job Role"
                 className="w-full pl-12 pr-4 py-3.5 bg-[#111] border border-white/10 rounded-2xl text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-[#00B386] transition-colors shadow-2xl"
               />
             </div>
