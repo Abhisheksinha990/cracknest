@@ -26,12 +26,9 @@ const PublicLayout = () => (
 );
 
 const ProtectedRoute = ({ children }) => {
-  const { user, isLoading, guestLogin } = useContext(AuthContext);
+  const { user, isLoading } = useContext(AuthContext);
   if (isLoading) return <div className="h-screen w-screen flex items-center justify-center bg-zinc-950 text-white">Loading...</div>;
-  if (!user) {
-    guestLogin();
-    return children;
-  }
+  if (!user) return <Navigate to="/login" replace />;
   return children;
 };
 

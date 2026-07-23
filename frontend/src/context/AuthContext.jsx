@@ -19,17 +19,8 @@ export const AuthProvider = ({ children }) => {
           setIsAuthenticated(true);
         } catch (e) {
           console.error(e);
-          // Fallback guest user if token expired/invalid
-          const guestUser = { id: "guest_public_user_1", name: "Guest User", email: "guest@cracknest.com", role: "PRO" };
-          setUser(guestUser);
-          setIsAuthenticated(true);
+          localStorage.removeItem('token');
         }
-      } else {
-        // Auto-login as Public Guest so opening any direct link opens the app instantly without blocking
-        const guestUser = { id: "guest_public_user_1", name: "Guest User", email: "guest@cracknest.com", role: "PRO" };
-        setUser(guestUser);
-        setIsAuthenticated(true);
-        localStorage.setItem('token', "guest_token_public_123");
       }
       setIsLoading(false);
     };
@@ -81,25 +72,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const guestLogin = async () => {
-    try {
-      const response = await api.post('/auth/guest');
-      setUser(response.data.user);
-      setIsAuthenticated(true);
-      localStorage.setItem('token', response.data.token);
-      toast.success(`Welcome, Guest User!`);
-      return { success: true, user: response.data.user };
-    } catch (error) {
-      // Fallback guest user if server is unavailable or offline
-      const guestUser = { id: "guest_public_user_1", name: "Guest User", email: "guest@cracknest.com", role: "PRO" };
-      setUser(guestUser);
-      setIsAuthenticated(true);
-      localStorage.setItem('token', "guest_token_public_123");
-      toast.success("Welcome, Guest User!");
-      return { success: true, user: guestUser };
-    }
-  };
-
   const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
@@ -129,7 +101,6 @@ export const AuthProvider = ({ children }) => {
       isLoading, 
       login,
       googleLogin,
-      guestLogin,
       register, 
       logout,
       upgradeToPro
@@ -138,4 +109,5 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
 
