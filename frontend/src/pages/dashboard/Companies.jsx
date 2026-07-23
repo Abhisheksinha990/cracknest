@@ -322,9 +322,6 @@ const Companies = () => {
         
         {/* HEADER SECTION */}
         <div className="text-center max-w-3xl mx-auto mb-12">
-          <span className="inline-block px-4 py-1.5 bg-[#00B386]/10 text-[#33bb9a] text-xs font-bold uppercase tracking-wider rounded-full border border-[#00B386]/20 mb-4">
-            5-Stage Verified Hiring Pipeline
-          </span>
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">
             CrackNest Company <span className="text-[#33bb9a] italic">Roadmaps</span>
           </h1>
