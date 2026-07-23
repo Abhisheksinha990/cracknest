@@ -193,7 +193,7 @@ const Landing = () => {
             <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">Everything You Need</h2>
             <p className="text-zinc-400 text-lg max-w-2xl mx-auto">A comprehensive toolkit designed to help you ace your interviews and land offers.</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             <div className="bg-[#111] border border-white/5 rounded-2xl p-8 hover:border-[#00B386]/30 transition-all duration-300 group flex flex-col relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-[#00B386]/5 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-150 duration-500"></div>
               <div className="w-14 h-14 rounded-xl flex items-center justify-center text-zinc-400 group-hover:text-[#33bb9a] bg-white/5 mb-8 group-hover:bg-[#00B386]/10 transition-colors">
@@ -204,20 +204,6 @@ const Landing = () => {
                 Get an instant ATS score for your resume along with targeted suggestions to improve it and pass screening rounds.
               </p>
               <Link to="/resume" className="mt-8 inline-flex items-center gap-2 text-[#33bb9a] hover:text-[#66ccb3] font-semibold transition-colors text-sm">
-                Try it now <ArrowRight size={16} />
-              </Link>
-            </div>
-            
-            <div className="bg-[#111] border border-white/5 rounded-2xl p-8 hover:border-[#00B386]/30 transition-all duration-300 group flex flex-col relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-[#00B386]/5 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-150 duration-500"></div>
-              <div className="w-14 h-14 rounded-xl flex items-center justify-center text-zinc-400 group-hover:text-[#33bb9a] bg-white/5 mb-8 group-hover:bg-[#00B386]/10 transition-colors">
-                <Target size={28} />
-              </div>
-              <h3 className="text-2xl font-bold text-white mb-4">Company Roadmaps</h3>
-              <p className="text-zinc-400 leading-relaxed flex-1">
-                Access personalized preparation roadmaps for product and service-based companies based on your skill gap analysis.
-              </p>
-              <Link to="/companies" className="mt-8 inline-flex items-center gap-2 text-[#33bb9a] hover:text-[#66ccb3] font-semibold transition-colors text-sm">
                 Try it now <ArrowRight size={16} />
               </Link>
             </div>

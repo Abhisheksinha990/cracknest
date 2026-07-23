@@ -38,22 +38,7 @@ const MockInterviews = () => {
   const chatRef = useRef(null);
   const fileInputRef = useRef(null);
   
-  const [userApiKey, setUserApiKey] = useState(localStorage.getItem('user_gemini_api_key') || '');
-  const [showKeyInput, setShowKeyInput] = useState(false);
-  
-  const activeKey = userApiKey.trim() || import.meta.env.VITE_GEMINI_API_KEY || "";
-
-  const handleSaveKey = (e) => {
-    e.preventDefault();
-    if (userApiKey.trim()) {
-      localStorage.setItem('user_gemini_api_key', userApiKey.trim());
-      toast.success("Custom Gemini API Key saved! Fresh daily quota activated.");
-    } else {
-      localStorage.removeItem('user_gemini_api_key');
-      toast.success("Reset to default system key.");
-    }
-    setShowKeyInput(false);
-  };
+  const activeKey = import.meta.env.VITE_GEMINI_API_KEY || "";
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -144,7 +129,7 @@ const MockInterviews = () => {
     setNotFoundCompany(null);
     setIsLoading(true);
 
-    const activeKey = apiKey || localStorage.getItem('user_gemini_api_key');
+    const activeKey = import.meta.env.VITE_GEMINI_API_KEY || "";
     if (activeKey) {
       try {
         const checkGenAI = new GoogleGenerativeAI(activeKey);
@@ -251,7 +236,7 @@ const MockInterviews = () => {
         - Ask 8 difficult, high-pressure questions.
       ` : '';
 
-      const activeKey = apiKey || localStorage.getItem('user_gemini_api_key');
+      const activeKey = import.meta.env.VITE_GEMINI_API_KEY || "";
       const genAI = new GoogleGenerativeAI(activeKey);
       const model = genAI.getGenerativeModel({ 
         model: 'gemini-1.5-flash',
@@ -281,7 +266,7 @@ const MockInterviews = () => {
       console.error(error);
       const errMsg = error?.message || "";
       if (errMsg.includes("429") || errMsg.includes("quota") || errMsg.includes("RESOURCE_EXHAUSTED")) {
-        toast.error("Gemini API daily quota reached. Enter your own free API Key using the key button above.");
+        toast.error("Gemini API daily quota reached. Please try again later.");
         setPhase('setup');
         setIsLoading(false);
         return;
@@ -517,12 +502,6 @@ const MockInterviews = () => {
           </div>
           <div className="flex items-center gap-3 mt-1">
             <h1 className="text-2xl md:text-3xl font-serif text-white tracking-tight">CrackNest AI Mock Interview</h1>
-            <button
-              onClick={() => setShowKeyInput(!showKeyInput)}
-              className="px-3.5 py-1 bg-zinc-900 hover:bg-zinc-800 text-xs font-semibold text-[#33bb9a] border border-[#00B386]/30 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-md"
-            >
-              <span>🔑 {userApiKey ? 'Custom Key Active' : 'Daily Limit Hit? Set Key'}</span>
-            </button>
           </div>
         </div>
 
@@ -540,28 +519,6 @@ const MockInterviews = () => {
           </div>
         )}
       </div>
-
-      {/* API Key Panel */}
-      {showKeyInput && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-4 p-4 bg-zinc-900/90 backdrop-blur-md border border-zinc-800 rounded-2xl relative z-20 space-y-3">
-          <div className="flex justify-between items-center">
-            <span className="text-xs font-bold text-white uppercase tracking-wider">Custom Gemini API Key Manager</span>
-            <span className="text-[11px] text-zinc-400">Get a free key in 10 sec at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-[#33bb9a] underline font-bold">aistudio.google.com</a></span>
-          </div>
-          <form onSubmit={handleSaveKey} className="flex gap-2">
-            <input
-              type="password"
-              value={userApiKey}
-              onChange={(e) => setUserApiKey(e.target.value)}
-              placeholder="Paste free Gemini API Key (AIzaSy...)"
-              className="flex-1 px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#00B386]"
-            />
-            <button type="submit" className="px-5 py-2.5 bg-[#00B386] hover:bg-[#33bb9a] text-white text-xs font-bold rounded-xl transition-colors cursor-pointer">
-              Save & Activate
-            </button>
-          </form>
-        </motion.div>
-      )}
 
       {/* PHASE 1: SETUP */}
       {phase === 'setup' && (

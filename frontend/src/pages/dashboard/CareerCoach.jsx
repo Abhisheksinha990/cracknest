@@ -91,7 +91,7 @@ const StrategicCareerAdvisor = () => {
     }
 
     try {
-      const activeKey = apiKey || localStorage.getItem('user_gemini_api_key');
+      const activeKey = import.meta.env.VITE_GEMINI_API_KEY || "";
       const genAI = new GoogleGenerativeAI(activeKey);
       const model = genAI.getGenerativeModel({ 
         model: 'gemini-1.5-flash',

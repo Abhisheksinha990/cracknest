@@ -20,7 +20,7 @@ const ResumeAnalyzer = () => {
   const [loadingStep, setLoadingStep] = useState(0);
   const navigate = useNavigate();
   
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem('user_gemini_api_key') || "";
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
 
   useEffect(() => {
     let interval;

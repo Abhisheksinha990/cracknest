@@ -24,7 +24,6 @@ const Navbar = () => {
   const navLinks = [
     { name: 'Home', path: '/' },
     { name: 'Resume Analyzer', path: '/resume' },
-    { name: 'Company Roadmap', path: '/companies' },
     { name: 'Mock Interviews', path: '/interviews' }
   ];
 

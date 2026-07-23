@@ -9,7 +9,6 @@ import Pricing from './pages/Pricing';
 
 import ResumeAnalyzer from './pages/dashboard/ResumeAnalyzer';
 import MockInterviews from './pages/dashboard/MockInterviews';
-import Companies from './pages/dashboard/Companies';
 import Admin from './pages/dashboard/Admin';
 
 import { Toaster } from 'react-hot-toast';
@@ -62,7 +61,6 @@ function App() {
             
             {/* Protected Feature Routes */}
             <Route path="/resume" element={<ProtectedRoute><ResumeAnalyzer /></ProtectedRoute>} />
-            <Route path="/companies" element={<ProtectedRoute><Companies /></ProtectedRoute>} />
             <Route path="/interviews" element={<ProtectedRoute><MockInterviews /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
 
