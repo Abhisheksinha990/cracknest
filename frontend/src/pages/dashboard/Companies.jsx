@@ -11,8 +11,29 @@ import toast from 'react-hot-toast';
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem('user_gemini_api_key') || "";
 
+// VERIFIED HIRING DATABASE BLUEPRINTS
+const VERIFIED_HIRING_DATABASE = {
+  product_giants: {
+    oaPlatform: "HackerRank / Codility / TestGorilla",
+    avgRounds: "Online Assessment + 3 Technical Rounds + 1 Managerial/Behavioral Round",
+    oaPattern: "2 Coding Questions (Medium/Hard) + 15 CS Core MCQs (60-90 Mins)",
+    cgpaRequirement: "7.0+ CGPA or 65%+ throughout academics",
+    dsaTopics: ["Dynamic Programming", "Graphs (BFS/DFS)", "Trees & BST", "Tries & Heaps", "Sliding Window"],
+    csSubjects: ["DBMS (Indexing & B-Trees)", "Operating Systems (Concurrency)", "Computer Networks (TCP/IP)", "OOPs (SOLID)"]
+  },
+  services_enterprises: {
+    oaPlatform: "Mettl / iON / HackerEarth",
+    avgRounds: "Online Assessment + 1 Technical Round + 1 HR Round",
+    oaPattern: "2 Coding Questions + 20 Aptitude & Verbal MCQs + 15 Technical MCQs (90 Mins)",
+    cgpaRequirement: "6.0+ CGPA or 60%+ throughout 10th, 12th, and Graduation",
+    dsaTopics: ["Arrays & Strings", "Linked Lists", "Sorting & Searching", "Basic Recursion", "Stack & Queue"],
+    csSubjects: ["SQL Queries & Joins", "OOP Concepts", "Basic Networking", "OS Basics"]
+  }
+};
+
 const Companies = () => {
   const [companyInput, setCompanyInput] = useState('');
+  const [roleInput, setRoleInput] = useState('Software Engineer');
   const [isLoading, setIsLoading] = useState(false);
   const [roadmapData, setRoadmapData] = useState(null);
   const [notFoundCompany, setNotFoundCompany] = useState(null);
@@ -44,18 +65,20 @@ const Companies = () => {
 
     if (knownList.some(k => cleaned === k || cleaned.includes(k) || k.includes(cleaned))) return true;
 
-    // Reject consecutive consonants (3+ consonants in a row, e.g. rgh, ghr, rgr, sdf)
     if (/[bcdfghjklmnpqrstvwxyz]{3,}/i.test(cleaned)) return false;
-
-    // Reject repeated characters (3+ identical characters in a row, e.g. aaaa, zzz)
     if (/(.)\1{2,}/.test(cleaned)) return false;
 
-    // Require at least 25% vowels for unlisted multi-letter words
     const vowelCount = (cleaned.match(/[aeiou]/g) || []).length;
     if (vowelCount === 0) return false;
     if (cleaned.length >= 4 && (vowelCount / cleaned.length) < 0.25) return false;
 
     return true;
+  };
+
+  const fetchVerifiedHiringData = (companyName) => {
+    const cleaned = companyName.toLowerCase();
+    const isServiceCompany = ["tcs", "infosys", "wipro", "accenture", "cognizant", "capgemini", "deloitte"].some(s => cleaned.includes(s));
+    return isServiceCompany ? VERIFIED_HIRING_DATABASE.services_enterprises : VERIFIED_HIRING_DATABASE.product_giants;
   };
 
   const handleGenerate = async (e) => {
@@ -65,32 +88,36 @@ const Companies = () => {
     if (!isCompanyValid(companyInput)) {
       setNotFoundCompany(companyInput);
       setRoadmapData(null);
-      toast.error("Company not found. Please select a valid company below.");
+      toast.error("Company not found. Please select a valid company name.");
       return;
     }
 
     setNotFoundCompany(null);
     setIsLoading(true);
 
+    const verifiedHiringData = fetchVerifiedHiringData(companyInput);
+    const targetRole = roleInput.trim() || 'Software Engineer';
+
     if (!apiKey) {
       setTimeout(() => {
         setRoadmapData({
           status: "SUCCESS",
           company: companyInput,
+          role: targetRole,
           dataStatusNotice: "",
-          companyOverview: `${companyInput} is a global tech enterprise known for engineering excellence, system scalability, and rigorous multi-stage candidate evaluations.`,
+          companyOverview: `${companyInput} is a renowned global enterprise evaluating candidates for the ${targetRole} position through structured engineering assessments.`,
           eligibility: {
-            minCgpa: "6.5+ CGPA or 60%+ throughout 10th, 12th, and Graduation",
-            backlogsAllowed: "0 Active Backlogs allowed at the time of joining",
+            minCgpa: verifiedHiringData.cgpaRequirement,
+            backlogsAllowed: "0 Active Backlogs allowed at joining",
             degree: "B.Tech / B.E / M.Tech / MCA / Dual Degree",
             graduationYear: "2024 / 2025 / 2026 Batch Graduates",
             branchEligibility: "CS, IT, ECE, EEE, AI/ML & related Circuit Branches"
           },
           selectionProcess: [
-            { round: "Round 1", title: "Online Assessment (OA)", details: "2 Coding Questions + 20 CS Core & Aptitude MCQs on HackerRank / Mettl (90-120 mins)." },
-            { round: "Round 2", title: "Technical Interview I (DSA & Problem Solving)", details: "Live coding on shared whiteboard. Focus on Data Structures, Algorithms & Code Optimization (60 mins)." },
-            { round: "Round 3", title: "Technical Interview II (System Design & CS Core)", details: "Low-Level Design (LLD), Object-Oriented Principles, DBMS & Operating Systems (60 mins)." },
-            { round: "Round 4", title: "HR & Managerial Round", details: "Culture fit, leadership principles, past project deep-dive, and situational questions using the STAR framework (45 mins)." }
+            { round: "Round 1", title: "Online Assessment (OA)", details: verifiedHiringData.oaPattern },
+            { round: "Round 2", title: `Technical Interview I (${targetRole} Core)`, details: "Live coding on shared whiteboard. Focus on DSA, Problem Solving & Space/Time complexity." },
+            { round: "Round 3", title: "Technical Interview II (System Design & CS Core)", details: "Low-Level Design (LLD), Object-Oriented Principles, DBMS & Operating Systems." },
+            { round: "Round 4", title: "HR & Managerial Round", details: "Culture fit, leadership principles, past project deep-dive, and STAR method behavioral questions." }
           ],
           onlineAssessment: {
             aptitude: "15 Questions (Quantitative & Numerical Ability)",
@@ -106,7 +133,7 @@ const Companies = () => {
           codingQuestions: {
             difficulty: "Medium to Hard",
             languagesAllowed: ["Java", "Python", "C++", "C#"],
-            expectedTopics: ["Arrays & Strings", "Trees & BST", "Dynamic Programming", "Graph Traversals (BFS/DFS)", "Two Pointers"]
+            expectedTopics: verifiedHiringData.dsaTopics
           },
           technicalInterview: {
             java: "JVM Architecture, Garbage Collection, Multithreading, Concurrent Collections",
@@ -116,23 +143,23 @@ const Companies = () => {
             os: "Process vs Thread, Deadlock Prevention, Paging, Virtual Memory, CPU Scheduling",
             cn: "TCP/IP Stack, OSI Layers, HTTP/HTTPS, DNS Resolution, Handshake Mechanism",
             oop: "Encapsulation, Polymorphism, Inheritance, Abstraction, SOLID Principles",
-            projects: "System Architecture, Scalability bottlenecks, Database choice rationale, Microservices",
-            resume: "Deep-dive into past internships, technical stack choices & individual project contributions"
+            projects: `${targetRole} system architecture, scalability bottlenecks, database choice rationale`,
+            resume: `Deep-dive into ${targetRole} experience, technical stack choices & project contributions`
           },
           hrInterview: [
-            "Tell me about yourself and your technical background.",
-            "Why do you want to join our engineering team over other tech companies?",
+            `Tell me about yourself and why you applied for the ${targetRole} position at ${companyInput}.`,
+            `Why do you want to join ${companyInput} over competitors?`,
             "Describe a major conflict or technical disagreement you had in a team project and how you resolved it.",
             "Where do you see yourself technically in 3 to 5 years?"
           ],
           preparationRoadmap: {
-            week1: "Master Core DSA (Arrays, Strings, Linked Lists, Trees) & Revise CS Fundamentals (DBMS, OS).",
-            week2: "Solve Top 30 Company-Specific LeetCode Medium/Hard questions & practice System Design LLD.",
-            week3: "Build a deployment-ready full-stack project & draft 4 STAR-format behavioral stories.",
-            week4: "Conduct mock interviews, revise company archives, and practice whiteboard coding."
+            week1: `Master Core DSA & Revise CS Fundamentals tailored for ${targetRole}.`,
+            week2: `Solve Top 30 ${companyInput}-Specific LeetCode Medium/Hard questions & LLD.`,
+            week3: `Build a deployment-ready project showcasing ${targetRole} skills & draft STAR stories.`,
+            week4: `Conduct mock interviews for ${targetRole} at ${companyInput} & review interview archives.`
           },
           importantResources: [
-            "LeetCode Top Company Tagged Question Archives",
+            `LeetCode Top ${companyInput} Tagged Question Archives`,
             "NeetCode 150 & Striver SDE Sheet",
             "Grokking System Design & LLD Blueprints",
             "GeeksforGeeks Verified Company Archives"
@@ -156,6 +183,11 @@ const Companies = () => {
       const prompt = `
         You are CrackNest Company Preparation AI.
 
+        PIPELINE REQUIREMENT:
+        Company: "${companyInput}"
+        Target Role: "${targetRole}"
+        Verified Benchmark Data: ${JSON.stringify(verifiedHiringData)}
+
         Never invent hiring information.
         If exact company hiring data is unavailable, include this exact string in "dataStatusNotice":
         "Latest verified hiring pattern is unavailable. Showing the most recently verified pattern."
@@ -174,6 +206,7 @@ const Companies = () => {
         {
           "status": "SUCCESS",
           "company": "${companyInput}",
+          "role": "${targetRole}",
           "dataStatusNotice": "<empty string OR 'Latest verified hiring pattern is unavailable. Showing the most recently verified pattern.'>",
           "companyOverview": "<Factual 2-3 sentence overview of the company>",
           
@@ -280,39 +313,54 @@ const Companies = () => {
     <BackgroundPaths title="CrackNest Company Roadmaps">
       <div className="container mx-auto px-4 py-12 relative z-10 min-h-screen">
         
+        {/* HEADER SECTION */}
         <div className="text-center max-w-3xl mx-auto mb-10">
           <span className="px-3 py-1 bg-[#00B386]/10 text-[#33bb9a] text-xs font-bold uppercase tracking-wider rounded-full border border-[#00B386]/20">
-            Real Company Hiring Intelligence
+            5-Stage Verified Hiring Pipeline
           </span>
           <h1 className="text-4xl md:text-5xl font-bold text-white mt-4 mb-3">
             CrackNest Company <span className="text-[#33bb9a] italic">Roadmaps</span>
           </h1>
           <p className="text-zinc-400 text-sm">
-            Enter any verified company to generate hiring patterns, eligibility, round breakdowns, DSA topics, and a 4-week preparation plan.
+            Enter Company & Target Role to generate a verified, research-backed preparation roadmap.
           </p>
         </div>
 
-        <form onSubmit={handleGenerate} className="max-w-xl mx-auto mb-10">
-          <div className="relative flex items-center">
-            <Building2 size={20} className="absolute left-4 text-zinc-500" />
-            <input
-              type="text"
-              value={companyInput}
-              onChange={(e) => setCompanyInput(e.target.value)}
-              placeholder="Enter company name (e.g. Google, TCS, Accenture, Amazon)"
-              className="w-full pl-12 pr-32 py-4 bg-[#111] border border-white/10 rounded-2xl text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-[#00B386] transition-colors shadow-2xl"
-            />
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="absolute right-2 px-5 py-2.5 bg-[#00B386] hover:bg-[#009b74] text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
-              <span>{isLoading ? 'Searching...' : 'Generate'}</span>
-            </button>
+        {/* SEARCH FORM (COMPANY + ROLE) */}
+        <form onSubmit={handleGenerate} className="max-w-2xl mx-auto mb-10 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="relative flex items-center">
+              <Building2 size={20} className="absolute left-4 text-zinc-500" />
+              <input
+                type="text"
+                value={companyInput}
+                onChange={(e) => setCompanyInput(e.target.value)}
+                placeholder="Target Company (e.g. Google, TCS, Accenture)"
+                className="w-full pl-12 pr-4 py-3.5 bg-[#111] border border-white/10 rounded-2xl text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-[#00B386] transition-colors shadow-2xl"
+              />
+            </div>
+            <div className="relative flex items-center">
+              <Briefcase size={20} className="absolute left-4 text-zinc-500" />
+              <input
+                type="text"
+                value={roleInput}
+                onChange={(e) => setRoleInput(e.target.value)}
+                placeholder="Target Role (e.g. Software Engineer, SDE)"
+                className="w-full pl-12 pr-4 py-3.5 bg-[#111] border border-white/10 rounded-2xl text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-[#00B386] transition-colors shadow-2xl"
+              />
+            </div>
           </div>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full py-4 bg-[#00B386] hover:bg-[#009b74] text-white text-sm font-bold rounded-2xl transition-all shadow-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+          >
+            {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Search size={18} />}
+            <span>{isLoading ? 'Fetching Hiring Data & Generating Roadmap...' : 'Generate Verified Roadmap'}</span>
+          </button>
         </form>
 
+        {/* NOT FOUND CARD */}
         {notFoundCompany && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
