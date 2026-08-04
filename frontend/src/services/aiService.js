@@ -44,8 +44,26 @@ export const generateAIContent = async ({ prompt, filePart, systemInstruction })
         modelOptions.systemInstruction = systemInstruction;
       }
 
-      const model = genAI.getGenerativeModel(modelOptions);
-      const contents = filePart ? [prompt, filePart] : prompt;
+      let formattedFilePart = null;
+      if (filePart) {
+        if (filePart.inlineData) {
+          formattedFilePart = {
+            inlineData: {
+              data: filePart.inlineData.data,
+              mimeType: filePart.inlineData.mimeType
+            }
+          };
+        } else if (filePart.data && filePart.mimeType) {
+          formattedFilePart = {
+            inlineData: {
+              data: filePart.data,
+              mimeType: filePart.mimeType
+            }
+          };
+        }
+      }
+
+      const contents = formattedFilePart ? [prompt, formattedFilePart] : prompt;
 
       const result = await model.generateContent(contents);
       const responseText = result.response.text();
