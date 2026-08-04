@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import { motion } from 'framer-motion';
-import { Send, User, Bot, Loader2, Paperclip, FileText, X } from 'lucide-react';
+import { Send, User, Bot, Loader2, Paperclip, FileText, X, Settings } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { fileToGenerativePart } from '../../utils/fileParser';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
+import { RobustAIChatSession } from '../../services/aiService';
+import { AIKeyModal } from '../../components/AIKeyModal';
 
 const StrategicCareerAdvisor = () => {
   const { user } = useContext(AuthContext);
@@ -18,13 +19,12 @@ const StrategicCareerAdvisor = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [attachedFile, setAttachedFile] = useState(null);
-  const [fileContent, setFileContent] = useState(null);
+  const [filePart, setFilePart] = useState(null);
+  const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
   
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
-  
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -35,101 +35,72 @@ const StrategicCareerAdvisor = () => {
   }, [messages]);
 
   const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.type !== 'application/pdf') {
-        toast.error("Please upload PDF format only.");
-        e.target.value = null;
-        return;
-      }
-      setAttachedFile(file.name);
-      try {
-        const part = await fileToGenerativePart(file);
-        setFileContent(part);
-        toast.success("Resume attached successfully!");
-      } catch (err) {
-        console.error(err);
-        toast.error("Failed to parse file.");
-      }
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf' && !file.type.startsWith('text/')) {
+      toast.error('Please upload a PDF or text file');
+      return;
+    }
+
+    try {
+      setAttachedFile(file);
+      const part = await fileToGenerativePart(file);
+      setFilePart(part);
+      toast.success(`Attached ${file.name}`);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to parse file');
+      setAttachedFile(null);
+      setFilePart(null);
     }
   };
 
   const removeFile = () => {
     setAttachedFile(null);
-    setFileContent(null);
+    setFilePart(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if ((!input.trim() && !filePart) || isLoading) return;
 
-    if (!apiKey) {
-      const userMessage = input.trim();
-      setInput('');
-      setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
-      setIsLoading(true);
-      setTimeout(() => {
-        setMessages(prev => [...prev, { 
-          role: 'model', 
-          text: `Great question! When preparing for technical roles, focus on: 1) Mastering Core Algorithms (DSA), 2) System Design Fundamentals, and 3) Structuring project accomplishments using the STAR framework. (Tip: Configure VITE_GEMINI_API_KEY in Vercel for custom real-time Gemini AI coaching!)` 
-        }]);
-        setIsLoading(false);
-      }, 1000);
-      return;
-    }
+    const userText = input.trim();
+    const currentFilePart = filePart;
+    const currentFileName = attachedFile?.name;
 
-    const userMessage = input.trim();
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
+    removeFile();
+
+    const userMsgText = currentFileName 
+      ? `[Attached: ${currentFileName}]\n${userText}`
+      : userText;
+
+    setMessages(prev => [...prev, { role: 'user', text: userMsgText }]);
     setIsLoading(true);
 
-    let messageContent = userMessage;
-    if (fileContent) {
-      messageContent = [`CRITICAL INSTRUCTION: I have provided my resume. You MUST base your career advice strictly on my current background, projects, and skills. Use it to inform your strategy.\n\nUser Question: ${userMessage}`, fileContent];
-      removeFile();
-    }
-
     try {
-      const activeKey = import.meta.env.VITE_GEMINI_API_KEY || "";
-      const genAI = new GoogleGenerativeAI(activeKey);
-      const model = genAI.getGenerativeModel({ 
-        model: 'gemini-1.5-flash',
-        systemInstruction: `You are an elite Career Advisor & Placement Strategist for CrackNest. Your ONLY purpose is to help students get hired. You provide detailed company-specific roadmaps (e.g., how to get into Google, Cognizant, TCS), technical interview questions, aptitude test strategies, HR round tips, and resume reviews. If a student asks for a roadmap, break it down step-by-step (week by week or month by month) with specific resources and topics. STRICT RULE: You must politely but firmly refuse to answer any prompt that is not related to placements, software engineering careers, coding interviews, or professional development. Keep responses structured, highly actionable, and professional.
+      const systemInstruction = `You are an elite Career Advisor & Placement Strategist for CrackNest. Your ONLY purpose is to help students get hired. You provide detailed company-specific roadmaps (e.g., how to get into Google, Cognizant, TCS), technical interview questions, aptitude test strategies, HR round tips, and resume reviews. If a student asks for a roadmap, break it down step-by-step with specific resources and topics. Keep responses structured, highly actionable, and professional.`;
 
-IMPORTANT:
-Never give generic advice.
-Never say:
-"It depends."
-"Here are some tips."
-"I hope this helps."
-Always return structured markdown.
-Always behave like a recruiter.
-Always produce actionable feedback.
-Never skip scoring.
-Never answer outside your assigned role.
-If required information is missing, ask concise follow-up questions before proceeding.
-Keep responses factual, professional, and tailored to the user's inputs.`
-      });
-      
       const history = messages.slice(1).map(msg => ({
         role: msg.role === 'model' ? 'model' : 'user',
         parts: [{ text: msg.text }]
       }));
-      
-      const chat = model.startChat({
-        history,
-        generationConfig: { maxOutputTokens: 1000 },
-      });
 
-      const result = await chat.sendMessage(messageContent);
-      const response = await result.response;
-      const text = response.text();
+      const chatSession = new RobustAIChatSession({
+        systemInstruction,
+        history
+      });
+      await chatSession.init();
+
+      let prompt = currentFilePart ? [userText, currentFilePart] : userText;
+      const text = await chatSession.sendMessage(prompt);
 
       setMessages(prev => [...prev, { role: 'model', text }]);
     } catch (error) {
       console.error(error);
-      setMessages(prev => [...prev, { role: 'model', text: `Sorry, I encountered an error: ${error.message || 'Unknown error'}. Please try again.` }]);
+      setMessages(prev => [...prev, { role: 'model', text: `Sorry, I encountered an error: ${error.message || 'Unknown error'}. Please try again or check AI settings.` }]);
     } finally {
       setIsLoading(false);
     }
@@ -142,13 +113,24 @@ Keep responses factual, professional, and tailored to the user's inputs.`
           <h1 className="text-3xl font-serif text-white tracking-tight mb-2">Strategic Career Advisor</h1>
           <p className="text-zinc-400">Get personalized roadmaps, interview strategies, and system-level placement guidance.</p>
         </div>
-        <button 
-          onClick={() => navigate('/interviews')}
-          className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#009973] to-[#009973] hover:from-[#00B386] hover:to-[#00B386] text-white font-bold rounded-xl transition-all shadow-lg"
-        >
-          🎯 Take a Mock Interview
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsKeyModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-xl border border-zinc-800 text-xs font-medium transition-all cursor-pointer"
+          >
+            <Settings size={15} className="text-cyan-400" />
+            <span>AI Key Settings</span>
+          </button>
+          <button 
+            onClick={() => navigate('/interviews')}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#009973] to-[#009973] hover:from-[#00B386] hover:to-[#00B386] text-white font-bold rounded-xl transition-all shadow-lg text-xs"
+          >
+            🎯 Take a Mock Interview
+          </button>
+        </div>
       </div>
+
+      <AIKeyModal isOpen={isKeyModalOpen} onClose={() => setIsKeyModalOpen(false)} />
       
       <div className="flex-1 flex flex-col border border-zinc-700/50 rounded-2xl bg-zinc-900/50 backdrop-blur-md overflow-hidden shadow-2xl">
         <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">

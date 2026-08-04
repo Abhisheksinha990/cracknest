@@ -1,17 +1,18 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
 import { motion } from 'framer-motion';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { AuthContext } from '../../context/AuthContext';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { GLSLHills } from '../../components/ui/glsl-hills';
 import { 
   Building2, Briefcase, Play, Send, CheckCircle, ShieldAlert, User, Loader2, 
   RotateCcw, Star, TrendingUp, AlertTriangle, Paperclip, FileText, X, ToggleLeft, 
-  ToggleRight, Server, Award, Target, MessageSquare, BookOpen, Lightbulb
+  ToggleRight, Server, Award, Target, MessageSquare, BookOpen, Lightbulb, Settings
 } from 'lucide-react';
 import { fileToGenerativePart } from '../../utils/fileParser';
 import toast from 'react-hot-toast';
 import api from '../../api';
+import { RobustAIChatSession, generateAIContent, generateAIJSON, getActiveApiKey } from '../../services/aiService';
+import { AIKeyModal } from '../../components/AIKeyModal';
 
 const TOTAL_QUESTIONS = 8;
 
@@ -27,6 +28,7 @@ const MockInterviews = () => {
   const [fileContent, setFileContent] = useState('');
   const [isStressMode, setIsStressMode] = useState(false);
   const [notFoundCompany, setNotFoundCompany] = useState(null);
+  const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
   
   const [messages, setMessages] = useState([]);
   const [evaluations, setEvaluations] = useState([]); // Stores per-answer evaluations
@@ -154,14 +156,12 @@ const MockInterviews = () => {
     setNotFoundCompany(null);
     setIsLoading(true);
 
-    const activeKey = import.meta.env.VITE_GEMINI_API_KEY || "";
+    const activeKey = getActiveApiKey();
     if (activeKey) {
       try {
-        const checkGenAI = new GoogleGenerativeAI(activeKey);
-        const checkModel = checkGenAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
         const checkPrompt = `Verify if "${company}" is a real, legitimate company. If it is fake, fabricated, or gibberish (e.g. "asdfgh", "dsegvds"), respond ONLY with {"status":"NOT_FOUND"}. Otherwise respond with {"status":"SUCCESS"}.`;
-        const checkRes = await checkModel.generateContent(checkPrompt);
-        const checkTxt = checkRes.response.text().replace(/```json/gi, '').replace(/```/g, '').trim();
+        const checkRes = await generateAIContent({ prompt: checkPrompt });
+        const checkTxt = checkRes.text.replace(/```json/gi, '').replace(/```/g, '').trim();
         if (checkTxt.includes("NOT_FOUND")) {
           setNotFoundCompany(company);
           setIsLoading(false);
@@ -177,19 +177,6 @@ const MockInterviews = () => {
     setMessages([]);
     setEvaluations([]);
     setQuestionCount(1);
-    
-    if (!apiKey) {
-      setTimeout(() => {
-        setMessages([
-          { 
-            role: 'model', 
-            text: `Welcome to your official CrackNest Mock Interview for the ${role} position at ${company}. I am your Senior Technical Interviewer.\n\nLet me start with Question 1 (Foundational):\n"Tell me about yourself, your background in software engineering, and why you are interested in joining ${company} as a ${role}."` 
-          }
-        ]);
-        setIsLoading(false);
-      }, 500);
-      return;
-    }
 
     try {
       const baseInstructions = `
@@ -233,20 +220,6 @@ const MockInterviews = () => {
            }
 
         Never break character. Be a realistic, professional, and thorough interviewer.
-
-        IMPORTANT:
-        Never give generic advice.
-        Never say:
-        "It depends."
-        "Here are some tips."
-        "I hope this helps."
-        Always return structured markdown.
-        Always behave like a recruiter.
-        Always produce actionable feedback.
-        Never skip scoring.
-        Never answer outside your assigned role.
-        If required information is missing, ask concise follow-up questions before proceeding.
-        Keep responses factual, professional, and tailored to the user's inputs.
       `;
 
       const stressInstructions = isStressMode ? `
@@ -257,46 +230,25 @@ const MockInterviews = () => {
         - Never insult the candidate. Be professional but strict.
         - Challenge weak or vague answers immediately.
         - Question assumptions. Ask "Why?", "How?", "Can you prove that?", "What if this system fails?".
-        - If an answer is generic or clichéd (e.g. "I am hardworking", "I pay attention to detail"), challenge it directly (e.g., "Everyone says that. Give me a real production example.").
         - Ask 8 difficult, high-pressure questions.
       ` : '';
 
-      const activeKey = import.meta.env.VITE_GEMINI_API_KEY || "";
-      const genAI = new GoogleGenerativeAI(activeKey);
-      const model = genAI.getGenerativeModel({ 
-        model: 'gemini-1.5-flash',
+      const chatSession = new RobustAIChatSession({
         systemInstruction: baseInstructions + stressInstructions
       });
-
-      const chat = model.startChat({
-        history: [],
-        generationConfig: { maxOutputTokens: 1200 },
-      });
-
-      chatRef.current = chat;
+      await chatSession.init();
+      chatRef.current = chatSession;
 
       let prompt = `Hello, I am ${user?.name || 'the candidate'}. I am ready to begin my 8-question mock interview for the ${role} position at ${company}. Please ask me Question 1.`;
-      let messageContent = prompt;
-      
       if (fileContent) {
-        prompt = `I have attached my resume. Please base relevant project, tech stack, and experience questions directly on my resume.\n\n${prompt}`;
-        messageContent = [prompt, fileContent];
+        prompt = `I have attached my resume details:\n${fileContent}\n\nPlease base relevant project, tech stack, and experience questions directly on my resume.\n\n${prompt}`;
       }
       
-      const result = await chat.sendMessage(messageContent);
-      const text = result.response.text();
-      
+      const text = await chatSession.sendMessage(prompt);
       setMessages([{ role: 'model', text }]);
     } catch (error) {
       console.error(error);
-      const errMsg = error?.message || "";
-      if (errMsg.includes("429") || errMsg.includes("quota") || errMsg.includes("RESOURCE_EXHAUSTED")) {
-        toast.error("Gemini API daily quota reached. Please try again later.");
-        setPhase('setup');
-        setIsLoading(false);
-        return;
-      }
-      
+      toast.error("AI Interviewer initialization issue. Please check API settings.");
       setMessages([{ 
         role: 'model', 
         text: `Welcome to your mock interview for the ${role} position at ${company}. Let's start with Question 1:\n"Please introduce yourself and highlight your core technical skills and past projects relevant to ${company}."` 
@@ -530,20 +482,32 @@ const MockInterviews = () => {
           </div>
         </div>
 
-        {phase === 'interview' && (
-          <div className="flex items-center gap-4 bg-zinc-900/90 px-5 py-2.5 rounded-xl border border-zinc-800">
-            <div>
-              <span className="text-xs text-zinc-500 font-bold block">TARGET</span>
-              <span className="text-xs font-bold text-white">{company} • {role}</span>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsKeyModalOpen(true)}
+            className="flex items-center gap-2 px-3.5 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-xl border border-zinc-800 text-xs font-medium transition-all cursor-pointer"
+          >
+            <Settings size={15} className="text-cyan-400" />
+            <span>AI Key Settings</span>
+          </button>
+
+          {phase === 'interview' && (
+            <div className="flex items-center gap-4 bg-zinc-900/90 px-5 py-2.5 rounded-xl border border-zinc-800">
+              <div>
+                <span className="text-xs text-zinc-500 font-bold block">TARGET</span>
+                <span className="text-xs font-bold text-white">{company} • {role}</span>
+              </div>
+              <div className="h-8 w-px bg-zinc-800"></div>
+              <div className="text-right">
+                <span className="text-xs text-zinc-500 font-bold block">PROGRESS</span>
+                <span className="text-sm font-bold text-[#33bb9a]">Question {questionCount} / {TOTAL_QUESTIONS}</span>
+              </div>
             </div>
-            <div className="h-8 w-px bg-zinc-800"></div>
-            <div className="text-right">
-              <span className="text-xs text-zinc-500 font-bold block">PROGRESS</span>
-              <span className="text-sm font-bold text-[#33bb9a]">Question {questionCount} / {TOTAL_QUESTIONS}</span>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
+
+      <AIKeyModal isOpen={isKeyModalOpen} onClose={() => setIsKeyModalOpen(false)} />
 
       {/* PHASE 1: SETUP */}
       {phase === 'setup' && (

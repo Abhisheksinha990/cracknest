@@ -7,8 +7,9 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { fileToGenerativePart } from '../../utils/fileParser';
+import { generateAIJSON, getActiveApiKey } from '../../services/aiService';
+import { AIKeyModal } from '../../components/AIKeyModal';
+import { Settings } from 'lucide-react';
 
 const ResumeAnalyzer = () => {
   const [file, setFile] = useState(null);
@@ -18,9 +19,10 @@ const ResumeAnalyzer = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [results, setResults] = useState(null);
   const [loadingStep, setLoadingStep] = useState(0);
+  const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
   const navigate = useNavigate();
   
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
+  const apiKey = getActiveApiKey();
 
   useEffect(() => {
     let interval;
@@ -58,130 +60,27 @@ const ResumeAnalyzer = () => {
     
     setIsUploading(true);
 
-    if (!apiKey) {
-      setTimeout(() => {
-        setResults({
-          overallAtsScore: 78,
-          companyMatchPercent: targetCompany ? 75 : 82,
-          roleMatchPercent: jobRole ? 72 : 80,
-          interviewReadinessPercent: 70,
-          probabilityOfGettingShortlisted: "Moderate (45-60%)",
-          
-          sectionScores: {
-            formatting: 85,
-            skillsMatch: 75,
-            experience: 70,
-            projects: 68,
-            education: 90,
-            achievements: 65,
-            keywords: 72,
-            readability: 88
-          },
-          
-          strengths: [
-            "Clean single-column layout easily parsed by ATS systems.",
-            "Strong foundation in core languages (Python, JavaScript, SQL).",
-            "Clear education history from accredited institution."
-          ],
-          
-          weaknesses: [
-            "Projects lack production deployment metrics and performance benchmarks.",
-            "No formal software engineering internships or corporate work experience listed.",
-            "Bullet points use weak passive verbs instead of strong action verbs.",
-            "Missing key cloud infrastructure tools (Docker, AWS, CI/CD)."
-          ],
-          
-          missingKeywords: [
-            "Docker", "Kubernetes", "CI/CD Pipelines", "Unit Testing", "Microservices",
-            "System Architecture", "Redis Caching", "RESTful API Security"
-          ],
-          
-          top15MissingKeywords: [
-            "Docker", "AWS", "CI/CD", "Unit Testing", "GraphQL", "Redis", 
-            "PostgreSQL", "System Design", "Agile/Scrum", "Git Workflows",
-            "Microservices", "OAuth2", "Jest/PyTest", "Terraform", "Kubernetes"
-          ],
-          
-          atsProblems: [
-            "Inconsistent date formatting across sections.",
-            "Skills section relies on basic bullet points rather than grouped tech categories.",
-            "Contact info missing LinkedIn or GitHub profile hyperlink."
-          ],
-          
-          recruiterConcerns: [
-            "Projects appear basic (typical tutorial projects without unique user scale).",
-            "Lack of quantitative metrics (e.g. 'Improved speed by X%', 'Handled Y requests').",
-            "Short duration of project engagements."
-          ],
-          
-          technicalSkillGap: [
-            "Containerization & Orchestration (Docker, Kubernetes)",
-            "Automated Testing (PyTest / Jest)",
-            "Cloud Deployment & Infrastructure (AWS / Vercel / GCP)"
-          ],
-          
-          softSkillGap: [
-            "Cross-functional collaboration & Agile methodology mention",
-            "Technical documentation & API design specs"
-          ],
-          
-          projectsImprovement: [
-            "Upgrade basic projects by adding authentication (OAuth2 / JWT) and deployment on AWS/Render.",
-            "Include live project links and GitHub repository links for every listed project.",
-            "Add load testing metrics (e.g., 'Maintained 99.9% uptime under 1,000 concurrent requests')."
-          ],
-          
-          resumeImprovementSuggestions: [
-            "Rewrite project bullet points using the XYZ formula: Accomplished [X] as measured by [Y], by doing [Z].",
-            "Create a dedicated 'Technical Skills' grid broken into Languages, Frameworks, Databases, and Developer Tools.",
-            "Add a 2-sentence professional summary tailored specifically to your target role."
-          ],
-          
-          recommendedCertifications: [
-            "AWS Certified Developer – Associate",
-            "Meta Front-End / Back-End Developer Professional Certificate",
-            "HashiCorp Certified: Terraform Associate"
-          ],
-          
-          recommendedProjects: [
-            "Full-Stack E-Commerce / SaaS Platform with Stripe Payments and Redis Caching",
-            "Distributed Task Queue & Real-time Analytics Dashboard using WebSockets",
-            "AI-Powered Search Engine / Document Summarizer using RAG architecture"
-          ],
-          
-          recommendedDsaTopics: [
-            "Graphs (BFS/DFS, Topological Sort, Dijkstra)",
-            "Dynamic Programming (Knapsack, Substrings, Grid DP)",
-            "Heaps & Priority Queues",
-            "Trees & Binary Search Trees (LCA, Traversal)"
-          ],
-          
-          recommendedInterviewTopics: [
-            "System Design: Load Balancing, Caching, and Database Sharding",
-            "Database Indexing & Query Optimization",
-            "REST vs GraphQL & WebSecurity (CORS, JWT, Rate Limiting)",
-            "Object-Oriented Design & SOLID Principles"
-          ],
-          
-          finalVerdict: `The candidate demonstrates solid foundational programming knowledge, but the resume is currently held back by generic projects and a lack of quantified impact metrics. To get shortlisted at companies like ${targetCompany || 'top tech firms'} for ${jobRole || 'engineering roles'}, the candidate must add production-level projects, containerization skills, and rewrite bullets with concrete metrics.`
-        });
-        setIsUploading(false);
-      }, 1500);
-      return;
-    }
-
     try {
-      const filePart = await fileToGenerativePart(file);
-      
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const parsedFile = await fileToGenerativePart(file);
+      const extractedText = parsedFile.extractedText || "";
 
       const promptText = `
         You are CrackNest AI Resume Analyzer.
         Your job is NOT to chat.
-        Your job is to behave exactly like an ATS scanner and Senior Technical Recruiter from top companies including Google, Microsoft, Amazon, Accenture, Cognizant, TCS, Infosys, Wipro, Deloitte, Adobe, Uber, Atlassian, Flipkart and similar companies.
+        Your job is to behave strictly like an algorithmic ATS scanner and Senior Technical Recruiter from top tier companies (Google, Microsoft, Amazon, Meta, Accenture, Cognizant, TCS, Infosys, Deloitte, Uber, Flipkart, Adobe).
 
-        Analyze every uploaded resume in depth based strictly on the uploaded resume content. Never hallucinate resume content.
+        CRITICAL REQUIREMENT:
+        You MUST analyze the candidate's resume based STRICTLY on the actual extracted text below.
+        Evaluate every project, tech stack, work experience duration, metric, and skill listed in this exact resume text.
+        Compute realistic, dynamic scores (0-100) reflecting the real strength or weakness of this candidate.
+        - If the resume contains basic/academic projects (e.g. simple to-do list, basic calculator), score projects realistically low (e.g. 35-55).
+        - If work experience or internships are missing, score experience low.
+        - Do NOT give generic fallback scores (like 78).
+        - Reference specific project titles, tools, and sections from the candidate's text in your feedback.
+
+        --- START OF CANDIDATE RESUME CONTENT ---
+        ${extractedText ? extractedText : "[PDF Content Attached]"}
+        --- END OF CANDIDATE RESUME CONTENT ---
 
         EVALUATION CONTEXT:
         - Target Company: ${targetCompany || "General Top Tech Companies"}
@@ -190,17 +89,16 @@ const ResumeAnalyzer = () => {
 
         STRICT RECRUITER STANDARDS:
         - Do not praise weak resumes.
-        - If the resume contains weak or basic projects (e.g. basic to-do app, simple calculator), state explicitly that they are weak.
+        - If the resume contains weak or basic projects, state explicitly why they fail recruiter standards.
         - If the resume has no internships or formal work experience, mention it explicitly.
-        - If achievements or quantitative metrics are missing, mention it.
-        - If company name exists (${targetCompany}), tailor feedback to ${targetCompany}'s hiring process and tech stack.
+        - If achievements or quantitative metrics are missing, penalize the score.
+        - If target company exists (${targetCompany}), evaluate against ${targetCompany}'s hiring bar and tech stack.
 
         OUTPUT FORMAT:
-        You MUST return EXACTLY ONE valid JSON object and absolutely NO markdown text, backticks, or extra commentary.
-        The JSON object MUST strictly match this schema:
+        You MUST return EXACTLY ONE valid JSON object matching this schema:
 
         {
-          "overallAtsScore": <number 0-100>,
+          "overallAtsScore": <number 0-100 based strictly on resume strength>,
           "companyMatchPercent": <number 0-100>,
           "roleMatchPercent": <number 0-100>,
           "interviewReadinessPercent": <number 0-100>,
@@ -217,8 +115,8 @@ const ResumeAnalyzer = () => {
             "readability": <number 0-100>
           },
           
-          "strengths": ["<strength 1>", "<strength 2>", "<strength 3>"],
-          "weaknesses": ["<weakness 1>", "<weakness 2>", "<weakness 3>"],
+          "strengths": ["<strength 1 citing specific item from resume>", "<strength 2>", "<strength 3>"],
+          "weaknesses": ["<weakness 1 citing specific gap from resume>", "<weakness 2>", "<weakness 3>"],
           "missingKeywords": ["<keyword 1>", "<keyword 2>", "<keyword 3>"],
           "top15MissingKeywords": ["<k1>", "<k2>", "<k3>", "<k4>", "<k5>", "<k6>", "<k7>", "<k8>", "<k9>", "<k10>", "<k11>", "<k12>", "<k13>", "<k14>", "<k15>"],
           "atsProblems": ["<ats problem 1>", "<ats problem 2>"],
@@ -233,36 +131,17 @@ const ResumeAnalyzer = () => {
           "recommendedDsaTopics": ["<dsa topic 1>", "<dsa topic 2>"],
           "recommendedInterviewTopics": ["<interview topic 1>", "<interview topic 2>"],
           
-          "finalVerdict": "<detailed 2-3 sentence recruiter verdict and final decision>"
+          "finalVerdict": "<detailed 2-3 sentence recruiter verdict citing specific resume items>"
         }
-
-        IMPORTANT:
-        Never give generic advice.
-        Never say:
-        "It depends."
-        "Here are some tips."
-        "I hope this helps."
-        Always return structured markdown.
-        Always behave like a recruiter.
-        Always produce actionable feedback.
-        Never skip scoring.
-        Never answer outside your assigned role.
-        If required information is missing, ask concise follow-up questions before proceeding.
-        Keep responses factual, professional, and tailored to the user's inputs.
       `;
 
-      const result = await model.generateContent([promptText, filePart]);
-      const responseText = result.response.text();
-      let cleanedJson = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
-      
-      try {
-        const parsedResults = JSON.parse(cleanedJson);
-        setResults(parsedResults);
-        toast.success("Resume analyzed successfully by CrackNest ATS Scanner!");
-      } catch (parseError) {
-        console.error("JSON Parse Error:", parseError, "Raw output:", responseText);
-        toast.error("Evaluation completed. Parsing structured format.");
-      }
+      const parsedResults = await generateAIJSON({
+        prompt: promptText,
+        filePart: parsedFile.inlineData ? parsedFile : null
+      });
+
+      setResults(parsedResults);
+      toast.success("Resume analyzed successfully by CrackNest ATS Engine!");
 
     } catch (error) {
       console.error(error);
@@ -288,7 +167,16 @@ const ResumeAnalyzer = () => {
             Algorithmic ATS evaluation & senior technical recruiter audit based on strict hiring standards.
           </p>
         </div>
+        <button
+          onClick={() => setIsKeyModalOpen(true)}
+          className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-xl border border-zinc-800 text-xs font-medium transition-all cursor-pointer self-start md:self-auto"
+        >
+          <Settings size={15} className="text-cyan-400" />
+          <span>AI Model & Key Settings</span>
+        </button>
       </div>
+
+      <AIKeyModal isOpen={isKeyModalOpen} onClose={() => setIsKeyModalOpen(false)} />
       
       <div className="flex-1 flex flex-col lg:flex-row gap-8">
         

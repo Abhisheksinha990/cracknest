@@ -7,7 +7,7 @@ from models import User
 import os
 
 security = HTTPBearer()
-JWT_SECRET = os.getenv("JWT_SECRET", "cracknest_super_secret_key_2026")
+JWT_SECRET = os.getenv("JWT_SECRET", "cracknest_super_secret_key_2026_production_secure_32_bytes")
 ALGORITHM = "HS256"
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)):

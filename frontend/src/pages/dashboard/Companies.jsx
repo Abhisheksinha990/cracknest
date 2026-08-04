@@ -3,13 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Building2, Search, Loader2, Target, CheckCircle2, ListChecks, Lightbulb, 
   Calendar, Award, BookOpen, Code, DollarSign, Clock, ShieldAlert, Cpu, 
-  Briefcase, ArrowRight, HelpCircle
+  Briefcase, ArrowRight, HelpCircle, Settings
 } from 'lucide-react';
 import { BackgroundPaths } from '../../components/ui/background-paths';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { generateAIContent, generateAIJSON, getActiveApiKey } from '../../services/aiService';
+import { AIKeyModal } from '../../components/AIKeyModal';
 import toast from 'react-hot-toast';
-
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem('user_gemini_api_key') || "";
 
 // VERIFIED HIRING DATABASE BLUEPRINTS
 const VERIFIED_HIRING_DATABASE = {
@@ -31,56 +30,104 @@ const VERIFIED_HIRING_DATABASE = {
   }
 };
 
+const levenshteinDistance = (a, b) => {
+  const m = a.length, n = b.length;
+  const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
+  }
+  return dp[m][n];
+};
+
+const resolveCompanyEntity = (input) => {
+  if (!input || input.trim().length < 2) return { valid: false };
+  const clean = input.trim().toLowerCase();
+
+  const knownMap = {
+    "google": "Google", "goodle": "Google", "googel": "Google", "gogle": "Google",
+    "microsoft": "Microsoft", "microsft": "Microsoft", "microsofft": "Microsoft",
+    "amazon": "Amazon", "amazn": "Amazon", "amzon": "Amazon",
+    "apple": "Apple", "appl": "Apple",
+    "meta": "Meta", "facebook": "Meta", "metta": "Meta",
+    "netflix": "Netflix", "uber": "Uber", "adobe": "Adobe",
+    "accenture": "Accenture", "acccenture": "Accenture", "accentur": "Accenture",
+    "cognizant": "Cognizant", "cogniznt": "Cognizant", "cognizantt": "Cognizant",
+    "capgemini": "Capgemini", "capgemni": "Capgemini",
+    "infosys": "Infosys", "infosis": "Infosys", "infosiss": "Infosys",
+    "tcs": "TCS", "tcss": "TCS", "tata consultancy services": "TCS",
+    "wipro": "Wipro", "wipror": "Wipro",
+    "deloitte": "Deloitte", "deloite": "Deloitte",
+    "flipkart": "Flipkart", "flipkartt": "Flipkart",
+    "atlassian": "Atlassian", "oracle": "Oracle", "ibm": "IBM", "cisco": "Cisco",
+    "salesforce": "Salesforce", "intel": "Intel", "nvidia": "Nvidia", "amd": "AMD",
+    "paypal": "PayPal", "paytm": "Paytm", "phonepe": "PhonePe", "walmart": "Walmart",
+    "target": "Target", "jpmorgan": "JPMorgan Chase", "goldman sachs": "Goldman Sachs",
+    "morgan stanley": "Morgan Stanley", "barclays": "Barclays", "hsbc": "HSBC",
+    "zomato": "Zomato", "swiggy": "Swiggy", "razorpay": "Razorpay", "zerodha": "Zerodha",
+    "cred": "CRED", "ola": "Ola", "bloomberg": "Bloomberg", "intuit": "Intuit",
+    "stripe": "Stripe", "airbnb": "Airbnb", "doordash": "DoorDash", "databricks": "Databricks",
+    "tesla": "Tesla", "spotify": "Spotify", "twitter": "X (Twitter)", "x": "X (Twitter)",
+    "linkedin": "LinkedIn", "github": "GitHub", "gitlab": "GitLab", "notion": "Notion",
+    "figma": "Figma", "slack": "Slack", "zoom": "Zoom", "shopify": "Shopify", "canva": "Canva",
+    "palantir": "Palantir", "snowflake": "Snowflake", "twilio": "Twilio", "square": "Block (Square)",
+    "crowdstrike": "CrowdStrike", "cloudflare": "Cloudflare", "datadog": "Datadog",
+    "mongodb": "MongoDB", "hashicorp": "HashiCorp", "unity": "Unity", "epic games": "Epic Games",
+    "sony": "Sony", "samsung": "Samsung", "lg": "LG", "dell": "Dell", "hp": "HP",
+    "qualcomm": "Qualcomm", "broadcom": "Broadcom", "arm": "ARM", "tsmc": "TSMC",
+    "boeing": "Boeing", "airbus": "Airbus", "siemens": "Siemens", "honeywell": "Honeywell",
+    "ford": "Ford", "gm": "General Motors", "toyota": "Toyota", "honda": "Honda",
+    "hyundai": "Hyundai", "bmw": "BMW", "mercedes": "Mercedes-Benz", "audi": "Audi",
+    "shell": "Shell", "bp": "BP", "total": "TotalEnergies", "exxon": "ExxonMobil",
+    "chevron": "Chevron", "reliance": "Reliance Industries", "tata": "Tata Group",
+    "pfizer": "Pfizer", "moderna": "Moderna", "johnson": "Johnson & Johnson",
+    "mckinsey": "McKinsey", "bain": "Bain & Company", "bcg": "BCG", "pwc": "PwC",
+    "kpmg": "KPMG", "ey": "EY"
+  };
+
+  // Direct map check
+  if (knownMap[clean]) {
+    return { valid: true, resolvedName: knownMap[clean] };
+  }
+
+  // Fuzzy edit distance match against known companies
+  const knownKeys = Object.keys(knownMap);
+  let bestKey = null, minD = 99;
+  for (const k of knownKeys) {
+    const d = levenshteinDistance(clean, k);
+    if (d < minD) {
+      minD = d;
+      bestKey = k;
+    }
+  }
+
+  const maxAllowedDistance = clean.length <= 4 ? 1 : clean.length <= 8 ? 2 : 3;
+  if (minD <= maxAllowedDistance) {
+    return { valid: true, resolvedName: knownMap[bestKey] };
+  }
+
+  // Basic regex checks for unknown names
+  if (/\d/.test(clean)) return { valid: false };
+  if (/[bcdfghjklmnpqrstvwxyz]{3,}/i.test(clean)) return { valid: false };
+  if (/(.)\1{2,}/.test(clean)) return { valid: false };
+
+  const vowelCount = (clean.match(/[aeiou]/g) || []).length;
+  if (vowelCount === 0) return { valid: false };
+  if (clean.length >= 4 && (vowelCount / clean.length) < 0.35) return { valid: false };
+
+  return { valid: true, resolvedName: input.trim() };
+};
+
 const Companies = () => {
   const [companyInput, setCompanyInput] = useState('');
   const [roleInput, setRoleInput] = useState('Software Engineer');
   const [isLoading, setIsLoading] = useState(false);
   const [roadmapData, setRoadmapData] = useState(null);
   const [notFoundCompany, setNotFoundCompany] = useState(null);
-
-  const isCompanyValid = (name) => {
-    if (!name || name.trim().length < 2) return false;
-    const cleaned = name.trim().toLowerCase();
-
-    const knownList = [
-      "google", "microsoft", "amazon", "apple", "meta", "facebook", "netflix", "uber", "adobe",
-      "accenture", "cognizant", "capgemini", "infosys", "tcs", "tata consultancy services",
-      "wipro", "deloitte", "flipkart", "atlassian", "oracle", "ibm", "cisco", "salesforce",
-      "intel", "nvidia", "amd", "paypal", "paytm", "phonepe", "walmart", "target", "jpmorgan",
-      "goldman sachs", "morgan stanley", "barclays", "hsbc", "zomato", "swiggy", "razorpay",
-      "zerodha", "cred", "ola", "bloomberg", "intuit", "stripe", "airbnb", "doordash", "databricks",
-      "tesla", "spotify", "twitter", "x", "linkedin", "github", "gitlab", "notion", "figma", "slack",
-      "zoom", "shopify", "canva", "palantir", "snowflake", "twilio", "square", "block", "palo alto",
-      "crowdstrike", "cloudflare", "datadog", "mongo", "mongodb", "elastic", "confluent", "hashicorp",
-      "unity", "epic games", "ea", "electronic arts", "ubisoft", "sony", "samsung", "lg", "dell", "hp",
-      "lenovo", "asus", "acer", "qualcomm", "broadcom", "arm", "tsmc", "asml", "applied materials",
-      "synopsys", "cadence", "microchip", "texas instruments", "stmicroelectronics", "nxp", "infineon",
-      "boeing", "airbus", "lockheed", "general electric", "ge", "siemens", "schneider", "abb", "honeywell",
-      "3m", "caterpillar", "john deere", "ford", "gm", "general motors", "toyota", "honda", "hyundai",
-      "bmw", "mercedes", "audi", "porsche", "volkswagen", "volvo", "nissan", "subaru", "mazda", "ferrari",
-      "shell", "bp", "total", "exxon", "chevron", "aramco", "reliance", "adani", "tata", "birla",
-      "pfizer", "moderna", "johnson", "roche", "novartis", "merck", "abbvie", "bayer", "sanofi", "gsk",
-      "mckinsey", "bain", "bcg", "pwc", "kpmg", "ey", "ernst & young"
-    ];
-
-    if (knownList.some(k => cleaned === k || cleaned.includes(k) || k.includes(cleaned))) return true;
-
-    // Reject numbers in unlisted company names (e.g. eryrey5ey5e, test123, 5ey5e)
-    if (/\d/.test(cleaned)) return false;
-
-    // Reject consecutive consonants (3+ consonants in a row, e.g. rgh, ghr, rgr, sdf)
-    if (/[bcdfghjklmnpqrstvwxyz]{3,}/i.test(cleaned)) return false;
-
-    // Reject repeated characters (3+ identical characters in a row, e.g. aaaa, zzz)
-    if (/(.)\1{2,}/.test(cleaned)) return false;
-
-    // Require at least 35% vowels for unlisted multi-letter words
-    const vowelCount = (cleaned.match(/[aeiou]/g) || []).length;
-    if (vowelCount === 0) return false;
-    if (cleaned.length >= 4 && (vowelCount / cleaned.length) < 0.35) return false;
-
-    return true;
-  };
+  const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
 
   const fetchVerifiedHiringData = (companyName) => {
     const cleaned = companyName.toLowerCase();
@@ -92,118 +139,51 @@ const Companies = () => {
     e.preventDefault();
     if (!companyInput.trim()) return;
 
-    if (!isCompanyValid(companyInput)) {
+    const resolved = resolveCompanyEntity(companyInput);
+
+    if (!resolved.valid) {
       setNotFoundCompany(companyInput);
       setRoadmapData(null);
-      toast.error("Company not found. Please enter a valid company name.");
+      toast.error("Company not found. Please enter a valid, real-world company name.");
       return;
     }
 
+    const targetCompany = resolved.resolvedName;
     setNotFoundCompany(null);
     setIsLoading(true);
 
-    const verifiedHiringData = fetchVerifiedHiringData(companyInput);
+    const verifiedHiringData = fetchVerifiedHiringData(targetCompany);
     const targetRole = roleInput.trim() || 'Software Engineer';
 
-    if (!apiKey) {
-      setTimeout(() => {
-        setRoadmapData({
-          status: "SUCCESS",
-          company: companyInput,
-          role: targetRole,
-          dataStatusNotice: "",
-          companyOverview: `${companyInput} is a renowned global enterprise evaluating candidates for the ${targetRole} position through structured engineering assessments.`,
-          eligibility: {
-            minCgpa: verifiedHiringData.cgpaRequirement,
-            backlogsAllowed: "0 Active Backlogs allowed at joining",
-            degree: "B.Tech / B.E / M.Tech / MCA / Dual Degree",
-            graduationYear: "2024 / 2025 / 2026 Batch Graduates",
-            branchEligibility: "CS, IT, ECE, EEE, AI/ML & related Circuit Branches"
-          },
-          selectionProcess: [
-            { round: "Round 1", title: "Online Assessment (OA)", details: verifiedHiringData.oaPattern },
-            { round: "Round 2", title: `Technical Interview I (${targetRole} Core)`, details: "Live coding on shared whiteboard. Focus on DSA, Problem Solving & Space/Time complexity." },
-            { round: "Round 3", title: "Technical Interview II (System Design & CS Core)", details: "Low-Level Design (LLD), Object-Oriented Principles, DBMS & Operating Systems." },
-            { round: "Round 4", title: "HR & Managerial Round", details: "Culture fit, leadership principles, past project deep-dive, and STAR method behavioral questions." }
-          ],
-          onlineAssessment: {
-            aptitude: "15 Questions (Quantitative & Numerical Ability)",
-            logical: "15 Questions (Logical Reasoning & Data Interpretation)",
-            verbal: "10 Questions (Verbal Ability & Grammar)",
-            coding: "2 Questions (Arrays, Strings, Dynamic Programming)",
-            mcqs: "20 Technical MCQs (DBMS, OS, Networks, OOPs)",
-            sql: "2 Query Writing Questions (Joins, Indexing, Grouping)",
-            debugging: "3 Code Snippet Debugging Challenges",
-            essay: "1 Business Writing / Communication Assessment",
-            timeLimit: "90 - 120 Minutes"
-          },
-          codingQuestions: {
-            difficulty: "Medium to Hard",
-            languagesAllowed: ["Java", "Python", "C++", "C#"],
-            expectedTopics: verifiedHiringData.dsaTopics
-          },
-          technicalInterview: {
-            java: "JVM Architecture, Garbage Collection, Multithreading, Concurrent Collections",
-            python: "GIL, Decorators, Generators, AsyncIO, Memory Management",
-            cpp: "STL Containers, Pointers & References, Memory Leaks, Virtual Functions",
-            dbms: "SQL Joins, Indexing (B-Trees), ACID Properties, Transactions, Normalization",
-            os: "Process vs Thread, Deadlock Prevention, Paging, Virtual Memory, CPU Scheduling",
-            cn: "TCP/IP Stack, OSI Layers, HTTP/HTTPS, DNS Resolution, Handshake Mechanism",
-            oop: "Encapsulation, Polymorphism, Inheritance, Abstraction, SOLID Principles",
-            projects: `${targetRole} system architecture, scalability bottlenecks, database choice rationale`,
-            resume: `Deep-dive into ${targetRole} experience, technical stack choices & project contributions`
-          },
-          hrInterview: [
-            `Tell me about yourself and why you applied for the ${targetRole} position at ${companyInput}.`,
-            `Why do you want to join ${companyInput} over competitors?`,
-            "Describe a major conflict or technical disagreement you had in a team project and how you resolved it.",
-            "Where do you see yourself technically in 3 to 5 years?"
-          ],
-          preparationRoadmap: {
-            week1: `Master Core DSA & Revise CS Fundamentals tailored for ${targetRole}.`,
-            week2: `Solve Top 30 ${companyInput}-Specific LeetCode Medium/Hard questions & LLD.`,
-            week3: `Build a deployment-ready project showcasing ${targetRole} skills & draft STAR stories.`,
-            week4: `Conduct mock interviews for ${targetRole} at ${companyInput} & review interview archives.`
-          },
-          importantResources: [
-            `LeetCode Top ${companyInput} Tagged Question Archives`,
-            "NeetCode 150 & Striver SDE Sheet",
-            "Grokking System Design & LLD Blueprints",
-            "GeeksforGeeks Verified Company Archives"
-          ],
-          latestHiringTips: [
-            "Always clarify edge cases and constraints with the interviewer before writing code.",
-            "Explain your time and space complexity trade-offs out loud before implementation.",
-            "Structure all behavioral answers strictly using the STAR framework (Situation, Task, Action, Result)."
-          ]
-        });
-        setIsLoading(false);
-      }, 800);
-      return;
-    }
-
     try {
-      const activeKey = apiKey || localStorage.getItem('user_gemini_api_key');
-      const genAI = new GoogleGenerativeAI(activeKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      // 1. Strict Pre-verification Check
+      const checkPrompt = `Is "${targetCompany}" a real, legitimate, existing company in the real world? (e.g. Google, Microsoft, TCS, Infosys, Accenture, Cognizant, Wipro, Amazon, Meta, Adobe, Flipkart, Uber, etc.). If it is fake, fabricated, random gibberish, or an unverified name, respond ONLY with {"status":"NOT_FOUND"}. Otherwise respond with {"status":"SUCCESS"}.`;
+      
+      try {
+        const checkRes = await generateAIContent({ prompt: checkPrompt });
+        const checkTxt = checkRes.text.replace(/```json/gi, '').replace(/```/g, '').trim();
+        if (checkTxt.includes("NOT_FOUND")) {
+          setNotFoundCompany(companyInput);
+          setRoadmapData(null);
+          setIsLoading(false);
+          toast.error("Company not found. Please enter a valid, real-world company name.");
+          return;
+        }
+      } catch (err) {
+        console.warn("Pre-verification check warning:", err);
+      }
 
+      // 2. Generate Full Roadmap Data
       const prompt = `
         You are CrackNest Company Preparation AI.
 
         PIPELINE REQUIREMENT:
-        Company: "${companyInput}"
+        Company: "${targetCompany}"
         Target Role: "${targetRole}"
         Verified Benchmark Data: ${JSON.stringify(verifiedHiringData)}
 
-        Never invent hiring information.
-        If exact company hiring data is unavailable, include this exact string in "dataStatusNotice":
-        "Latest verified hiring pattern is unavailable. Showing the most recently verified pattern."
-        Otherwise, set "dataStatusNotice": "".
-
-        Only generate information that is commonly verified.
-
         STRICT NON-EXISTENT COMPANY RULE:
-        Verify if "${companyInput}" actually exists as a real company. If it is a fake, fabricated, or nonsensical string (like random letters, e.g. "asdfgh", "xyz123"), return EXACTLY:
+        Verify if "${targetCompany}" actually exists as a real company. If it is a fake, fabricated, or unverified company, return EXACTLY:
         {
           "status": "NOT_FOUND",
           "message": "Company not found. Please enter a valid company name."
@@ -212,10 +192,10 @@ const Companies = () => {
         For real companies, return EXACTLY ONE JSON object matching this schema:
         {
           "status": "SUCCESS",
-          "company": "${companyInput}",
+          "company": "${targetCompany}",
           "role": "${targetRole}",
-          "dataStatusNotice": "<empty string OR 'Latest verified hiring pattern is unavailable. Showing the most recently verified pattern.'>",
-          "companyOverview": "<Factual 2-3 sentence overview of the company>",
+          "dataStatusNotice": "",
+          "companyOverview": "<Factual 2-3 sentence overview of ${targetCompany}>",
           
           "eligibility": {
             "minCgpa": "<Minimum CGPA e.g. 6.5+ CGPA or 60%+>",
@@ -289,28 +269,22 @@ const Companies = () => {
             "<Tip 3>"
           ]
         }
-
-        STRICT RULES:
-        Never invent hiring information.
-        Never hallucinate.
-        If latest data is unknown, set dataStatusNotice to 'Latest verified hiring pattern is unavailable. Showing the most recently verified pattern.'
       `;
 
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
-      const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
-      const parsedData = JSON.parse(jsonStr);
+      const parsedData = await generateAIJSON({ prompt });
 
-      if (parsedData.status === "NOT_FOUND") {
+      if (!parsedData || parsedData.status === "NOT_FOUND" || !parsedData.companyOverview || parsedData.companyOverview.includes("renamed global enterprise evaluating candidates")) {
         setNotFoundCompany(companyInput);
         setRoadmapData(null);
-        toast.error("Company not found. Please enter a valid company name.");
+        toast.error("Company not found. Please enter a valid, real-world company name.");
       } else {
         setRoadmapData(parsedData);
       }
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to generate company roadmap. Please try again.");
+      console.error("Roadmap generation error:", err);
+      setNotFoundCompany(companyInput);
+      setRoadmapData(null);
+      toast.error("Company roadmap not found. Please enter a valid company name.");
     } finally {
       setIsLoading(false);
     }

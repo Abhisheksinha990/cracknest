@@ -66,7 +66,24 @@ export const AuthProvider = ({ children }) => {
       toast.success(`Welcome, ${response.data.user.name}!`);
       return { success: true, user: response.data.user };
     } catch (error) {
-      const msg = error.response?.data?.detail || 'Google Login failed';
+      const isNetworkError = error.code === 'ERR_NETWORK' || !error.response;
+      const msg = error.response?.data?.detail || (isNetworkError ? 'Backend server is offline or waking up. Please wait 30s if using free hosting (e.g. Render) or check backend server.' : 'Google Login failed');
+      toast.error(msg);
+      return { success: false, error: msg };
+    }
+  };
+
+  const guestLogin = async () => {
+    try {
+      const response = await api.post('/auth/guest');
+      setUser(response.data.user);
+      setIsAuthenticated(true);
+      localStorage.setItem('token', response.data.token);
+      toast.success('Logged in as Guest User!');
+      return { success: true, user: response.data.user };
+    } catch (error) {
+      const isNetworkError = error.code === 'ERR_NETWORK' || !error.response;
+      const msg = error.response?.data?.detail || (isNetworkError ? 'Backend server is offline or waking up. Please check backend server.' : 'Guest Login failed');
       toast.error(msg);
       return { success: false, error: msg };
     }
@@ -101,6 +118,7 @@ export const AuthProvider = ({ children }) => {
       isLoading, 
       login,
       googleLogin,
+      guestLogin,
       register, 
       logout,
       upgradeToPro
