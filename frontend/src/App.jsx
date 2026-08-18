@@ -1,21 +1,16 @@
-import React, { useEffect } from 'react';
+import React, { useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Outlet, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Pricing from './pages/Pricing';
-
-
 import ResumeAnalyzer from './pages/dashboard/ResumeAnalyzer';
 import MockInterviews from './pages/dashboard/MockInterviews';
 import Companies from './pages/dashboard/Companies';
 import Admin from './pages/dashboard/Admin';
-
 import { Toaster } from 'react-hot-toast';
-
 import { AuthContext } from './context/AuthContext';
-import { useContext } from 'react';
 
 // Layout for public pages that need the top Navbar
 const PublicLayout = () => (
@@ -32,11 +27,7 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-
-
 function App() {
-
-
   return (
     <Router>
       <div className="app">
@@ -44,13 +35,13 @@ function App() {
           position="top-right" 
           toastOptions={{
             style: {
-              background: '#1e293b', // zinc-800
+              background: '#1e293b',
               color: '#fff',
-              border: '1px solid #334155', // zinc-700
+              border: '1px solid #334155',
               borderRadius: '1rem',
             },
             success: {
-              iconTheme: { primary: '#06b6d4', secondary: '#fff' } // cyan-500
+              iconTheme: { primary: '#06b6d4', secondary: '#fff' }
             }
           }} 
         />
@@ -65,7 +56,6 @@ function App() {
             <Route path="/companies" element={<ProtectedRoute><Companies /></ProtectedRoute>} />
             <Route path="/interviews" element={<ProtectedRoute><MockInterviews /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-
           </Route>
           
           {/* Auth Routes */}
@@ -78,3 +68,4 @@ function App() {
 }
 
 export default App;
+
