@@ -1,10 +1,9 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, FileText, Target, Zap, Mail, MessageCircle, MapPin, Phone, ChevronDown, CheckCircle2, Star, Quote } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowRight, FileText, Target, Zap, Mail, MapPin, Star } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { AuthContext } from '../context/AuthContext';
-import AnimatedShaderBackground from '../components/ui/animated-shader-background';
-import { BackgroundPaths } from '../components/ui/background-paths';
+import { DotGlobeHero } from '../components/ui/globe-hero';
 import { HandwritingSvg } from '../components/ui/handwriting-svg';
 import Logo from '../components/Logo';
 import './Landing.css';
@@ -75,10 +74,8 @@ const ProCTASection = () => (
   </section>
 );
 
-
 const Footer = () => (
   <footer className="border-t border-white/10 bg-[#0a0a0a] relative z-10 overflow-hidden">
-    {/* Subtle gradient at the bottom */}
     <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-24 bg-[#00B386]/10 blur-3xl rounded-t-full"></div>
     
     <div className="container mx-auto px-4 py-10 relative z-10">
@@ -140,15 +137,29 @@ const Landing = () => {
   const displayName = user?.name || "Public Guest User";
   
   return (
-    <AnimatedShaderBackground>
-      <div className="landing-page flex flex-col min-h-screen w-full">
-        {/* Hero Section matching prompt image */}
-        <div className="flex-1 flex flex-col items-center justify-center pt-32 pb-20 px-4 relative z-10">
+    <div className="landing-page flex flex-col min-h-screen w-full bg-zinc-950">
+      
+      {/* Hero Section with Interactive 3D DotGlobeHero Background */}
+      <DotGlobeHero rotationSpeed={0.004} globeRadius={1.2}>
+        <div className="pt-24 pb-16 px-4 flex flex-col items-center justify-center text-center max-w-4xl mx-auto z-10">
+          
+          {/* Badge */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#00B386]/10 border border-[#00B386]/30 text-[#00B386] font-semibold text-xs uppercase tracking-widest mb-6 shadow-xl"
+          >
+            <span className="w-2 h-2 rounded-full bg-[#00B386] animate-ping"></span>
+            Career Preparation Platform
+          </motion.div>
+
+          {/* Heading matching design prompt: Bold white sans-serif Welcome Back, & Green handwritten SVG username */}
           <motion.div
             initial={{ opacity: 0.5, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.8, ease: "easeInOut" }}
-            className="flex flex-col items-center text-center max-w-4xl"
+            className="flex flex-col items-center text-center"
           >
             <h1 className="text-5xl font-extrabold tracking-tight text-white md:text-7xl leading-none mb-2 font-sans">
               Welcome Back,
@@ -170,93 +181,95 @@ const Landing = () => {
           
           <motion.div
             initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.8 }}
-            className="mt-8 text-sm md:text-base font-semibold text-[#00B386] tracking-widest uppercase text-center"
+            className="mt-6 text-sm md:text-base font-semibold text-[#00B386] tracking-widest uppercase text-center"
           >
             From Resume to Offer Letter
           </motion.div>
 
           <motion.p 
             initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
             transition={{ delay: 0.6, duration: 0.8 }}
-            className="mt-6 max-w-2xl text-center text-zinc-400 text-base md:text-lg font-medium leading-relaxed"
+            className="mt-4 max-w-2xl text-center text-zinc-400 text-base md:text-lg font-medium leading-relaxed"
           >
-            {user ? "Ready to continue your placement preparation journey? Head over to your dashboard." : "CrackNest analyzes your resume, builds personalized roadmaps, and prepares you for top tech companies with interactive mock interviews and coding challenges."}
+            {user ? "Ready to continue your placement preparation journey? Head over to your dashboard tools." : "CrackNest analyzes your resume, builds personalized roadmaps, and prepares you for top tech companies with interactive mock interviews and coding challenges."}
           </motion.p>
+
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.9, duration: 0.8 }}
-            className="mt-12 flex gap-4 z-50 relative"
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8, duration: 0.8 }}
+            className="mt-10 flex gap-4 z-50 relative"
           >
-            <Link to={user ? "/resume" : "/register"} className="btn btn-primary px-8 py-4 bg-[#009973] hover:bg-[#00B386] text-white rounded-full font-semibold transition-all shadow-lg shadow-[#009973]/20 flex items-center gap-2">
+            <Link to={user ? "/resume" : "/register"} className="btn btn-primary px-8 py-4 bg-[#009973] hover:bg-[#00B386] text-white rounded-full font-semibold transition-all shadow-lg shadow-[#009973]/20 flex items-center gap-2 cursor-pointer">
               {user ? "Go to Tools" : "Start for Free"} <ArrowRight size={18} />
             </Link>
-            <Link to="/pricing" className="btn btn-secondary px-8 py-4 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-full font-semibold transition-all">
+            <Link to="/pricing" className="btn btn-secondary px-8 py-4 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-full font-semibold transition-all cursor-pointer">
               View Pricing
             </Link>
           </motion.div>
+
+        </div>
+      </DotGlobeHero>
+
+      {/* Features Section */}
+      <section className="container mx-auto px-4 py-24 relative z-10 border-t border-white/5 bg-zinc-950">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">Everything You Need</h2>
+          <p className="text-zinc-400 text-lg max-w-2xl mx-auto">A comprehensive toolkit designed to help you ace your interviews and land offers.</p>
         </div>
 
-        {/* Features Section */}
-        <section className="container mx-auto px-4 py-24 relative z-10 border-t border-white/5">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">Everything You Need</h2>
-            <p className="text-zinc-400 text-lg max-w-2xl mx-auto">A comprehensive toolkit designed to help you ace your interviews and land offers.</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+          <div className="bg-[#111] border border-white/5 rounded-2xl p-8 hover:border-[#00B386]/30 transition-all duration-300 group flex flex-col relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-[#00B386]/5 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-150 duration-500"></div>
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center text-zinc-400 group-hover:text-[#33bb9a] bg-white/5 mb-8 group-hover:bg-[#00B386]/10 transition-colors">
+              <FileText size={28} />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-3">Resume ATS Scoring</h3>
+            <p className="text-zinc-400 leading-relaxed mb-8 flex-1">
+              Upload your resume and get detailed ATS compatibility analysis, keyword optimization recommendations, and industry benchmarks.
+            </p>
+            <Link to="/resume" className="inline-flex items-center gap-2 text-[#00B386] font-semibold hover:gap-3 transition-all text-sm">
+              Analyze Resume <ArrowRight size={16} />
+            </Link>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            <div className="bg-[#111] border border-white/5 rounded-2xl p-8 hover:border-[#00B386]/30 transition-all duration-300 group flex flex-col relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-[#00B386]/5 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-150 duration-500"></div>
-              <div className="w-14 h-14 rounded-xl flex items-center justify-center text-zinc-400 group-hover:text-[#33bb9a] bg-white/5 mb-8 group-hover:bg-[#00B386]/10 transition-colors">
-                <FileText size={28} />
-              </div>
-              <h3 className="text-2xl font-bold text-white mb-4">Smart Resume Analyzer</h3>
-              <p className="text-zinc-400 leading-relaxed flex-1">
-                Get an instant ATS score for your resume along with targeted suggestions to improve it and pass screening rounds.
-              </p>
-              <Link to="/resume" className="mt-8 inline-flex items-center gap-2 text-[#33bb9a] hover:text-[#66ccb3] font-semibold transition-colors text-sm">
-                Try it now <ArrowRight size={16} />
-              </Link>
-            </div>
-            
-            <div className="bg-[#111] border border-white/5 rounded-2xl p-8 hover:border-[#00B386]/30 transition-all duration-300 group flex flex-col relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-[#00B386]/5 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-150 duration-500"></div>
-              <div className="w-14 h-14 rounded-xl flex items-center justify-center text-zinc-400 group-hover:text-[#33bb9a] bg-white/5 mb-8 group-hover:bg-[#00B386]/10 transition-colors">
-                <Target size={28} />
-              </div>
-              <h3 className="text-2xl font-bold text-white mb-4">Company Roadmaps</h3>
-              <p className="text-zinc-400 leading-relaxed flex-1">
-                Access personalized preparation roadmaps for product and service-based companies based on your skill gap analysis.
-              </p>
-              <Link to="/companies" className="mt-8 inline-flex items-center gap-2 text-[#33bb9a] hover:text-[#66ccb3] font-semibold transition-colors text-sm">
-                Try it now <ArrowRight size={16} />
-              </Link>
-            </div>
-            
-            <div className="bg-[#111] border border-white/5 rounded-2xl p-8 hover:border-[#00B386]/30 transition-all duration-300 group flex flex-col relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-[#00B386]/5 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-150 duration-500"></div>
-              <div className="w-14 h-14 rounded-xl flex items-center justify-center text-zinc-400 group-hover:text-[#33bb9a] bg-white/5 mb-8 group-hover:bg-[#00B386]/10 transition-colors">
-                <Zap size={28} />
-              </div>
-              <h3 className="text-2xl font-bold text-white mb-4">Mock Interviews</h3>
-              <p className="text-zinc-400 leading-relaxed flex-1">
-                Practice HR and technical interviews with our intelligent system that provides real-time feedback and grading.
-              </p>
-              <Link to="/interviews" className="mt-8 inline-flex items-center gap-2 text-[#33bb9a] hover:text-[#66ccb3] font-semibold transition-colors text-sm">
-                Try it now <ArrowRight size={16} />
-              </Link>
-            </div>
-          </div>
-        </section>
 
-        <HowItWorksSection />
-        <ProCTASection />
-      </div>
-      
+          <div className="bg-[#111] border border-white/5 rounded-2xl p-8 hover:border-[#00B386]/30 transition-all duration-300 group flex flex-col relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-[#00B386]/5 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-150 duration-500"></div>
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center text-zinc-400 group-hover:text-[#33bb9a] bg-white/5 mb-8 group-hover:bg-[#00B386]/10 transition-colors">
+              <Target size={28} />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-3">Company Roadmaps</h3>
+            <p className="text-zinc-400 leading-relaxed mb-8 flex-1">
+              Access company-specific interview preparation guides for top tech companies. Know what to expect and study efficiently.
+            </p>
+            <Link to="/companies" className="inline-flex items-center gap-2 text-[#00B386] font-semibold hover:gap-3 transition-all text-sm">
+              Explore Roadmaps <ArrowRight size={16} />
+            </Link>
+          </div>
+
+          <div className="bg-[#111] border border-white/5 rounded-2xl p-8 hover:border-[#00B386]/30 transition-all duration-300 group flex flex-col relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-[#00B386]/5 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-150 duration-500"></div>
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center text-zinc-400 group-hover:text-[#33bb9a] bg-white/5 mb-8 group-hover:bg-[#00B386]/10 transition-colors">
+              <Zap size={28} />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-3">AI Mock Interviews</h3>
+            <p className="text-zinc-400 leading-relaxed mb-8 flex-1">
+              Practice 8-question structured mock interviews with AI. Get realistic feedback on your technical and behavioral responses.
+            </p>
+            <Link to="/interviews" className="inline-flex items-center gap-2 text-[#00B386] font-semibold hover:gap-3 transition-all text-sm">
+              Start Interview <ArrowRight size={16} />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <HowItWorksSection />
+      <ProCTASection />
       <Footer />
-      </AnimatedShaderBackground>
+    </div>
   );
 };
 
