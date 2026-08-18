@@ -1,14 +1,12 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const MODEL_CANDIDATES = [
-  'gemini-2.5-flash',
-  'gemini-3.6-flash',
   'gemini-1.5-flash',
+  'gemini-2.0-flash',
   'gemini-2.0-flash-lite',
   'gemini-1.5-pro',
   'gemini-flash-latest'
 ];
-
 
 export const getActiveApiKey = () => {
   if (typeof localStorage !== 'undefined') {
@@ -19,7 +17,6 @@ export const getActiveApiKey = () => {
   }
   return (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_GEMINI_API_KEY) || "";
 };
-
 
 export const setCustomApiKey = (key) => {
   if (key && key.trim()) {
@@ -122,12 +119,13 @@ export const generateAIJSON = async ({ prompt, filePart, systemInstruction }) =>
 };
 
 /**
- * Robust chat session wrapper with model fallback
+ * Robust chat session wrapper with automatic candidate model fallback & state preservation
  */
 export class RobustAIChatSession {
   constructor({ systemInstruction, history = [] }) {
     this.systemInstruction = systemInstruction;
-    this.history = history;
+    this.history = [...history];
+    this.currentCandidateIndex = 0;
     this.activeChat = null;
     this.activeModelName = null;
   }
@@ -135,14 +133,35 @@ export class RobustAIChatSession {
   async init() {
     const apiKey = getActiveApiKey();
     if (!apiKey) {
-      throw new Error("No Gemini API key found.");
+      throw new Error("No Gemini API key found. Please configure VITE_GEMINI_API_KEY or enter your custom key in AI Key Settings.");
+    }
+    this.activeModelName = MODEL_CANDIDATES[this.currentCandidateIndex] || MODEL_CANDIDATES[0];
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const modelOptions = { model: this.activeModelName };
+    if (this.systemInstruction) {
+      modelOptions.systemInstruction = this.systemInstruction;
+    }
+    const model = genAI.getGenerativeModel(modelOptions);
+    this.activeChat = model.startChat({
+      history: this.history,
+      generationConfig: { maxOutputTokens: 1500 }
+    });
+  }
+
+  async sendMessage(message) {
+    const apiKey = getActiveApiKey();
+    if (!apiKey) {
+      throw new Error("No Gemini API key found. Please configure VITE_GEMINI_API_KEY or enter your custom key in AI Key Settings.");
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
     let lastError = null;
 
-    for (const modelName of MODEL_CANDIDATES) {
+    for (let attempt = 0; attempt < MODEL_CANDIDATES.length; attempt++) {
+      const idx = (this.currentCandidateIndex + attempt) % MODEL_CANDIDATES.length;
+      const modelName = MODEL_CANDIDATES[idx];
+
       try {
+        const genAI = new GoogleGenerativeAI(apiKey);
         const modelOptions = { model: modelName };
         if (this.systemInstruction) {
           modelOptions.systemInstruction = this.systemInstruction;
@@ -154,35 +173,32 @@ export class RobustAIChatSession {
           generationConfig: { maxOutputTokens: 1500 }
         });
 
-        this.activeChat = chat;
-        this.activeModelName = modelName;
-        return;
+        const result = await chat.sendMessage(message);
+        const responseText = result.response.text();
+
+        if (responseText && responseText.trim()) {
+          this.currentCandidateIndex = idx;
+          this.activeChat = chat;
+          this.activeModelName = modelName;
+
+          // Preserve conversation turns across model candidates
+          this.history.push(
+            { role: 'user', parts: [{ text: message }] },
+            { role: 'model', parts: [{ text: responseText }] }
+          );
+
+          return responseText;
+        }
       } catch (err) {
-        console.warn(`[AI Chat] Failed to start chat with model ${modelName}:`, err.message);
+        console.warn(`[RobustAIChatSession] Model '${modelName}' failed:`, err.status || err.message);
         lastError = err;
       }
     }
 
-    throw lastError || new Error("Failed to initialize AI Chat Session.");
-  }
-
-  async sendMessage(message) {
-    if (!this.activeChat) {
-      await this.init();
-    }
-
-    try {
-      const result = await this.activeChat.sendMessage(message);
-      return result.response.text();
-    } catch (err) {
-      console.warn(`[AI Chat] Error on model ${this.activeModelName}, attempting re-init...`, err.message);
-      // Re-init with next candidate
-      await this.init();
-      const result = await this.activeChat.sendMessage(message);
-      return result.response.text();
-    }
+    throw lastError || new Error("All AI chat model candidates failed. Please check your API key or network connection.");
   }
 }
+
 
 /**
  * Interface-gated Roadmap Generator.

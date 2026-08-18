@@ -311,7 +311,8 @@ Return ONLY valid JSON matching this exact format:
   const prompt = `Validate company name: "${inputName}". Is this a real-world operating company? Provide proof link (official site, LinkedIn, Wikipedia, or Crunchbase).`;
 
   // Attempt using model with google_search tool
-  const modelCandidates = ['gemini-2.5-flash', 'gemini-3.6-flash', 'gemini-1.5-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-pro'];
+  const modelCandidates = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-pro'];
+
 
   let lastErr = null;
 
