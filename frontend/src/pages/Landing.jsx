@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AuthContext } from '../context/AuthContext';
 import AnimatedShaderBackground from '../components/ui/animated-shader-background';
 import { BackgroundPaths } from '../components/ui/background-paths';
+import { HandwritingSvg } from '../components/ui/handwriting-svg';
 import Logo from '../components/Logo';
 import './Landing.css';
 
@@ -102,30 +103,29 @@ const Footer = () => (
         </div>
         
         <div>
-          <h4 className="text-white font-semibold mb-4 text-lg">Product</h4>
-          <ul className="space-y-3">
-            <li><Link to="/pricing" className="text-zinc-400 hover:text-[#33bb9a] transition-colors">Pricing</Link></li>
-            <li><Link to="/resume" className="text-zinc-400 hover:text-[#33bb9a] transition-colors">Resume Analyzer</Link></li>
-            <li><Link to="/interviews" className="text-zinc-400 hover:text-[#33bb9a] transition-colors">Mock Interviews</Link></li>
+          <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Features</h4>
+          <ul className="space-y-2 text-sm text-zinc-400">
+            <li><Link to="/resume" className="hover:text-white transition-colors">Resume Analyzer</Link></li>
+            <li><Link to="/companies" className="hover:text-white transition-colors">Company Roadmaps</Link></li>
+            <li><Link to="/interviews" className="hover:text-white transition-colors">Mock Interviews</Link></li>
+            <li><Link to="/pricing" className="hover:text-white transition-colors">Pricing Plans</Link></li>
           </ul>
         </div>
         
         <div>
-          <h4 className="text-white font-semibold mb-4 text-lg">Company</h4>
-          <ul className="space-y-3">
-            <li><a href="#" className="text-zinc-400 hover:text-[#33bb9a] transition-colors">About Us</a></li>
-            <li><a href="#" className="text-zinc-400 hover:text-[#33bb9a] transition-colors">Contact</a></li>
-            <li><a href="#" className="text-zinc-400 hover:text-[#33bb9a] transition-colors">Privacy Policy</a></li>
-            <li><a href="#" className="text-zinc-400 hover:text-[#33bb9a] transition-colors">Terms of Service</a></li>
+          <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Company</h4>
+          <ul className="space-y-2 text-sm text-zinc-400">
+            <li><a href="#" className="hover:text-white transition-colors">About Us</a></li>
+            <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
+            <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
+            <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
           </ul>
         </div>
       </div>
       
-      <div className="border-t border-white/10 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
-        <p className="text-zinc-500 text-sm">
-          © {new Date().getFullYear()} CrackNest. All rights reserved.
-        </p>
-        <div className="flex items-center gap-6 text-zinc-500">
+      <div className="border-t border-white/5 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <p className="text-zinc-500 text-sm">© {new Date().getFullYear()} CrackNest. All rights reserved.</p>
+        <div className="flex gap-4">
           <a href="#" className="hover:text-white transition-colors text-sm font-medium">Twitter</a>
           <a href="#" className="hover:text-white transition-colors text-sm font-medium">LinkedIn</a>
           <a href="#" className="hover:text-white transition-colors text-sm font-medium">GitHub</a>
@@ -137,23 +137,35 @@ const Footer = () => (
 
 const Landing = () => {
   const { user } = useContext(AuthContext);
+  const displayName = user?.name || "Public Guest User";
+  
   return (
     <AnimatedShaderBackground>
       <div className="landing-page flex flex-col min-h-screen w-full">
-        {/* Hero Section */}
+        {/* Hero Section matching prompt image */}
         <div className="flex-1 flex flex-col items-center justify-center pt-32 pb-20 px-4 relative z-10">
-          <motion.h1
-            initial={{ opacity: 0.5, y: 100 }}
+          <motion.div
+            initial={{ opacity: 0.5, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.8, ease: "easeInOut" }}
-            className="text-center text-5xl font-serif tracking-tight text-white md:text-7xl leading-tight"
+            className="flex flex-col items-center text-center max-w-4xl"
           >
-            {user ? (
-              <>Welcome Back, <br /> <span className="text-[#00B386] italic">{user.name}</span></>
-            ) : (
-              <>Your Path to <br /> <span className="text-[#00B386] italic">Success</span></>
-            )}
-          </motion.h1>
+            <h1 className="text-5xl font-extrabold tracking-tight text-white md:text-7xl leading-none mb-3 font-sans">
+              Welcome Back,
+            </h1>
+
+            <div className="flex justify-center items-center overflow-visible py-2">
+              <HandwritingSvg
+                text={displayName}
+                width={Math.min(500, Math.max(300, displayName.length * 24))}
+                height={90}
+                fontSize={48}
+                strokeWidth={2.5}
+                duration={2.5}
+                className="text-[#00B386]"
+              />
+            </div>
+          </motion.div>
           
           <motion.div
             initial={{ opacity: 0 }}
