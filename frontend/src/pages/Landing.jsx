@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, FileText, Target, Zap, Mail, MapPin, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { AuthContext } from '../context/AuthContext';
+import AnimatedShaderBackground from '../components/ui/animated-shader-background';
+import { BackgroundPaths } from '../components/ui/background-paths';
 import { DotGlobeHero } from '../components/ui/globe-hero';
 import { HandwritingSvg } from '../components/ui/handwriting-svg';
 import Logo from '../components/Logo';
@@ -137,11 +139,13 @@ const Landing = () => {
   const displayName = user?.name || "Public Guest User";
   
   return (
-    <div className="landing-page flex flex-col min-h-screen w-full bg-zinc-950">
-      
-      {/* Hero Section with Interactive 3D DotGlobeHero Background */}
-      <DotGlobeHero rotationSpeed={0.004} globeRadius={1.2}>
-        <div className="pt-24 pb-16 px-4 flex flex-col items-center justify-center text-center max-w-4xl mx-auto z-10">
+    <AnimatedShaderBackground>
+      <div className="landing-page flex flex-col min-h-screen w-full relative">
+        <BackgroundPaths>
+          
+          {/* Hero Section with Interactive 3D DotGlobeHero Background */}
+          <DotGlobeHero rotationSpeed={0.004} globeRadius={1.2} className="bg-transparent">
+            <div className="pt-24 pb-16 px-4 flex flex-col items-center justify-center text-center max-w-4xl mx-auto z-10">
           
           {/* Badge with Red Pulsing Live Dot */}
           <motion.div 
@@ -270,7 +274,9 @@ const Landing = () => {
       <HowItWorksSection />
       <ProCTASection />
       <Footer />
-    </div>
+        </BackgroundPaths>
+      </div>
+    </AnimatedShaderBackground>
   );
 };
 
