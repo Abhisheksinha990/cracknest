@@ -143,28 +143,23 @@ export const extractTextFromPdf = async (file) => {
       ? nativeText.trim()
       : pdfjsText.trim();
 
-    if (finalText && finalText.length > 20) {
-      return finalText;
+    if (finalText && finalText.trim().length > 20) {
+      // Filter out raw PDF stream syntax markers (%PDF, /Type, /Catalog, etc.)
+      const cleanedText = finalText
+        .replace(/%PDF-\d\.\d/gi, '')
+        .replace(/\/\w+\s*\/[A-Za-z0-9]+/g, '')
+        .replace(/<<[^>]*>>/g, '')
+        .replace(/endobj|stream|endstream|xref|trailer/gi, '')
+        .trim();
+      return cleanedText;
     }
   } catch (err) {
-    console.error("[FileParser] Total PDF extraction error:", err);
+    console.error("[FileParser] PDF extraction error:", err);
   }
 
-  // Fallback: UTF-8 FileReader text
-  if (typeof FileReader === 'undefined') {
-    return "";
-  }
-
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result || "";
-      resolve(typeof text === 'string' ? text : "");
-    };
-    reader.onerror = () => resolve("");
-    reader.readAsText(file);
-  });
+  return "";
 };
+
 
 
 /**

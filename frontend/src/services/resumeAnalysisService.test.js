@@ -5,6 +5,8 @@ import {
   detectLayoutHazards, 
   cleanExtractedText,
   UnreadablePdfError,
+  NotAResumeError,
+  validateIsResumeDocument,
   analyzeResume
 } from './resumeAnalysisService';
 
@@ -159,6 +161,19 @@ describe('Resume Analysis Service & ATS Pipeline Suite', () => {
 
     const scoreDiff = Math.abs(resStrong.overallAtsScore - resWeak.overallAtsScore);
     expect(scoreDiff).toBeGreaterThanOrEqual(25);
+  });
+
+  // TEST CASE 8: Non-Resume PDF Rejection (NotAResumeError)
+  it('8. should reject non-resume PDFs (e.g. restaurant menu, invoice) with NotAResumeError', () => {
+    const nonResumeText = `
+      RESTAURANT MENU - ITALIAN BISTRO
+      Starters: Garlic Bread $5, Bruschetta $8, Caesar Salad $10
+      Main Course: Margherita Pizza $14, Spaghetti Carbonara $16, Penne Arrabbiata $15
+      Desserts: Tiramisu $7, Gelato $6
+      Open 11am - 10pm daily. Call for reservations: 555-0199.
+    `;
+
+    expect(() => validateIsResumeDocument(nonResumeText)).toThrow(NotAResumeError);
   });
 
 });

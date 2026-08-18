@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { analyzeResume, UnreadablePdfError } from '../../services/resumeAnalysisService';
+import { analyzeResume, UnreadablePdfError, NotAResumeError } from '../../services/resumeAnalysisService';
 import { AIKeyModal } from '../../components/AIKeyModal';
 import { Settings } from 'lucide-react';
 
@@ -61,6 +61,7 @@ const ResumeAnalyzer = () => {
     
     setIsUploading(true);
     setExtractionError(null);
+    setResults(null);
 
     try {
       // Grounded & Strict Input-Gated Resume Analysis
@@ -75,7 +76,7 @@ const ResumeAnalyzer = () => {
 
     } catch (error) {
       console.error("[ResumeAnalyzer] Upload Error:", error);
-      if (error instanceof UnreadablePdfError) {
+      if (error instanceof UnreadablePdfError || error instanceof NotAResumeError) {
         setExtractionError(error.message);
         toast.error(error.message);
       } else {
@@ -85,6 +86,7 @@ const ResumeAnalyzer = () => {
       setIsUploading(false);
     }
   };
+
 
   return (
     <div className="w-full min-h-screen flex flex-col bg-zinc-950 pt-24 px-4 md:px-8 pb-16 text-zinc-100">
@@ -132,10 +134,12 @@ const ResumeAnalyzer = () => {
                 <input 
                   type="file" 
                   accept=".pdf" 
+                  onClick={(e) => { e.target.value = null; }}
                   onChange={handleFileChange} 
                   className="hidden" 
                   id="resume-upload" 
                 />
+
                 <label 
                   htmlFor="resume-upload" 
                   className="px-4 py-2 bg-[#00B386] hover:bg-[#009b74] text-white text-xs font-bold rounded-lg cursor-pointer transition-colors shadow-lg"

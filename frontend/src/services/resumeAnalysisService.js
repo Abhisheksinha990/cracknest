@@ -13,6 +13,44 @@ export class UnreadablePdfError extends Error {
 }
 
 /**
+ * Custom error thrown when a PDF is readable but is NOT a Resume/CV (e.g. menu, invoice, manual)
+ */
+export class NotAResumeError extends Error {
+  constructor(message = "The uploaded file does not appear to be a valid Resume/CV. Please upload a resume PDF containing your experience, skills, or education.") {
+    super(message);
+    this.name = "NotAResumeError";
+  }
+}
+
+/**
+ * Validates that extracted text actually represents a candidate Resume or CV.
+ * Throws NotAResumeError if text lacks resume section indicators.
+ */
+export const validateIsResumeDocument = (extractedText) => {
+  const text = (extractedText || "").toLowerCase();
+  
+  const resumeKeywords = [
+    "experience", "education", "skills", "projects", "work", "employment", "university",
+    "bachelor", "master", "btech", "mtech", "b.tech", "degree", "internship", "intern",
+    "developer", "engineer", "designer", "manager", "analyst", "consultant", "architect",
+    "programming", "technologies", "certifications", "summary", "achievements", "curriculum vitae",
+    "resume", "cv", "github", "linkedin", "contact", "email", "phone"
+  ];
+
+  let matches = 0;
+  for (const kw of resumeKeywords) {
+    if (text.includes(kw)) {
+      matches++;
+    }
+  }
+
+  if (matches < 2) {
+    throw new NotAResumeError("The uploaded file does not appear to be a valid Resume or CV. Please upload a resume PDF containing your work experience, education, or skills.");
+  }
+  return true;
+};
+
+/**
  * Detect potential multi-column resume layout hazards that break standard ATS systems
  */
 export const detectLayoutHazards = (extractedText) => {
@@ -59,6 +97,7 @@ export const cleanExtractedText = (text) => {
 /**
  * Extracts and validates resume text from a PDF file.
  * Throws UnreadablePdfError if text length is below 100 characters.
+ * Throws NotAResumeError if text does not represent a candidate Resume/CV.
  */
 export const extractAndValidateResumeText = async (file) => {
   const rawText = await extractTextFromPdf(file);
@@ -67,6 +106,9 @@ export const extractAndValidateResumeText = async (file) => {
   if (!cleaned || cleaned.trim().length < 100) {
     throw new UnreadablePdfError("We couldn't read text from this PDF. Try uploading a text-based PDF or a different file.");
   }
+
+  // Validate that document is actually a Resume / CV
+  validateIsResumeDocument(cleaned);
 
   const wordCount = cleaned.split(/\s+/).filter(Boolean).length;
   const layoutAnalysis = detectLayoutHazards(cleaned);
@@ -78,6 +120,7 @@ export const extractAndValidateResumeText = async (file) => {
     layoutAnalysis
   };
 };
+
 
 /**
  * Offline algorithmic fallback scanner when API key is unavailable.
