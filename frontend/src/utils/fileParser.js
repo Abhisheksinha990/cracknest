@@ -1,17 +1,21 @@
-import * as pdfjsLib from 'pdfjs-dist';
+let pdfjsLib = null;
 
-// Safely configure pdfjs worker without causing module evaluation failures
-const ensureWorkerSrc = () => {
+const loadPdfJs = async () => {
+  if (pdfjsLib) return pdfjsLib;
   try {
-    if (typeof window !== 'undefined' && pdfjsLib && pdfjsLib.GlobalWorkerOptions) {
-      if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+    if (typeof window !== 'undefined' && typeof DOMMatrix !== 'undefined') {
+      const module = await import('pdfjs-dist');
+      pdfjsLib = module.default || module;
+      if (pdfjsLib && pdfjsLib.GlobalWorkerOptions && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
       }
     }
   } catch (e) {
-    console.warn("[FileParser] pdfjs worker configuration warning:", e);
+    console.warn("[FileParser] pdfjs-dist load warning:", e);
   }
+  return pdfjsLib;
 };
+
 
 /**
  * Native Pure-JS PDF Buffer Stream Text Extractor
@@ -101,17 +105,18 @@ export const extractPdfTextNative = (arrayBuffer) => {
  */
 export const extractTextFromPdf = async (file) => {
   try {
-    ensureWorkerSrc();
+    const lib = await loadPdfJs();
     const arrayBuffer = await file.arrayBuffer();
 
     // Engine 1: pdfjs-dist Browser Parser
     let pdfjsText = "";
     try {
-      if (pdfjsLib && pdfjsLib.getDocument) {
-        const loadingTask = pdfjsLib.getDocument({ 
+      if (lib && lib.getDocument) {
+        const loadingTask = lib.getDocument({ 
           data: new Uint8Array(arrayBuffer),
           useSystemFonts: true
         });
+
         const pdf = await loadingTask.promise;
 
         let pagesText = [];
@@ -146,6 +151,10 @@ export const extractTextFromPdf = async (file) => {
   }
 
   // Fallback: UTF-8 FileReader text
+  if (typeof FileReader === 'undefined') {
+    return "";
+  }
+
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -156,6 +165,7 @@ export const extractTextFromPdf = async (file) => {
     reader.readAsText(file);
   });
 };
+
 
 /**
  * Returns generative part for Gemini API plus extracted plain text
