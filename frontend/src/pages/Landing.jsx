@@ -145,33 +145,24 @@ const Landing = () => {
         {/* Hero Section matching prompt image */}
         <div className="flex-1 flex flex-col items-center justify-center pt-32 pb-20 px-4 relative z-10">
           <motion.div
-            initial={{ opacity: 0.5, y: 50 }}
+            initial={{ opacity: 0.5, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.8, ease: "easeInOut" }}
-            className="flex flex-col items-center text-center max-w-4xl space-y-1"
+            className="flex flex-col items-center text-center max-w-4xl"
           >
-            <div className="flex justify-center items-center overflow-visible">
-              <HandwritingSvg
-                text="Welcome Back,"
-                width={380}
-                height={85}
-                fontSize={48}
-                strokeWidth={2.5}
-                duration={2.0}
-                delay={0.2}
-                className="text-white"
-              />
-            </div>
+            <h1 className="text-5xl font-extrabold tracking-tight text-white md:text-7xl leading-none mb-2 font-sans">
+              Welcome Back,
+            </h1>
 
-            <div className="flex justify-center items-center overflow-visible">
+            <div className="flex justify-center items-center overflow-visible py-1">
               <HandwritingSvg
                 text={displayName}
-                width={Math.min(520, Math.max(300, displayName.length * 25))}
-                height={90}
-                fontSize={48}
+                width={Math.min(540, Math.max(320, displayName.length * 26))}
+                height={100}
+                fontSize={52}
                 strokeWidth={2.5}
                 duration={2.5}
-                delay={0.8}
+                delay={0.3}
                 className="text-[#00B386]"
               />
             </div>
