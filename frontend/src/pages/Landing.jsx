@@ -147,21 +147,31 @@ const Landing = () => {
           <motion.div
             initial={{ opacity: 0.5, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.8, ease: "easeInOut" }}
-            className="flex flex-col items-center text-center max-w-4xl"
+            transition={{ delay: 0.2, duration: 0.8, ease: "easeInOut" }}
+            className="flex flex-col items-center text-center max-w-4xl space-y-1"
           >
-            <h1 className="text-5xl font-extrabold tracking-tight text-white md:text-7xl leading-none mb-3 font-sans">
-              Welcome Back,
-            </h1>
+            <div className="flex justify-center items-center overflow-visible">
+              <HandwritingSvg
+                text="Welcome Back,"
+                width={380}
+                height={85}
+                fontSize={48}
+                strokeWidth={2.5}
+                duration={2.0}
+                delay={0.2}
+                className="text-white"
+              />
+            </div>
 
-            <div className="flex justify-center items-center overflow-visible py-2">
+            <div className="flex justify-center items-center overflow-visible">
               <HandwritingSvg
                 text={displayName}
-                width={Math.min(500, Math.max(300, displayName.length * 24))}
+                width={Math.min(520, Math.max(300, displayName.length * 25))}
                 height={90}
                 fontSize={48}
                 strokeWidth={2.5}
                 duration={2.5}
+                delay={0.8}
                 className="text-[#00B386]"
               />
             </div>
