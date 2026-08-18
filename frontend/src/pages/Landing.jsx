@@ -165,12 +165,10 @@ const Landing = () => {
               Welcome Back,
             </h1>
 
-            <div className="flex justify-center items-center overflow-visible py-1">
+            <div className="flex justify-center items-center overflow-visible py-1 w-full">
               <HandwritingSvg
                 text={displayName}
-                width={Math.min(540, Math.max(320, displayName.length * 26))}
-                height={100}
-                fontSize={52}
+                fontSize={48}
                 strokeWidth={2.5}
                 duration={2.5}
                 delay={0.3}
