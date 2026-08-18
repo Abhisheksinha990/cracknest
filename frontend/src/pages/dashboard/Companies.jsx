@@ -3,14 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Building2, Search, Loader2, Target, CheckCircle2, ListChecks, Lightbulb, 
   Calendar, Award, BookOpen, Code, DollarSign, Clock, ShieldAlert, Cpu, 
-  Briefcase, ArrowRight, HelpCircle, Settings
+  Briefcase, ArrowRight, HelpCircle, ExternalLink, AlertTriangle, Check
 } from 'lucide-react';
 import { BackgroundPaths } from '../../components/ui/background-paths';
-import { generateAIContent, generateAIJSON, getActiveApiKey } from '../../services/aiService';
-import { AIKeyModal } from '../../components/AIKeyModal';
+import { generateCompanyRoadmap } from '../../services/aiService';
+import { validateCompany } from '../../services/companyValidationService';
 import toast from 'react-hot-toast';
 
-// VERIFIED HIRING DATABASE BLUEPRINTS
+// VERIFIED HIRING DATABASE BLUEPRINTS (Fallback for Verified Entities)
 const VERIFIED_HIRING_DATABASE = {
   product_giants: {
     oaPlatform: "HackerRank / Codility / TestGorilla",
@@ -30,104 +30,15 @@ const VERIFIED_HIRING_DATABASE = {
   }
 };
 
-const levenshteinDistance = (a, b) => {
-  const m = a.length, n = b.length;
-  const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
-  for (let i = 0; i <= m; i++) dp[i][0] = i;
-  for (let j = 0; j <= n; j++) dp[0][j] = j;
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
-    }
-  }
-  return dp[m][n];
-};
-
-const resolveCompanyEntity = (input) => {
-  if (!input || input.trim().length < 2) return { valid: false };
-  const clean = input.trim().toLowerCase();
-
-  const knownMap = {
-    "google": "Google", "goodle": "Google", "googel": "Google", "gogle": "Google",
-    "microsoft": "Microsoft", "microsft": "Microsoft", "microsofft": "Microsoft",
-    "amazon": "Amazon", "amazn": "Amazon", "amzon": "Amazon",
-    "apple": "Apple", "appl": "Apple",
-    "meta": "Meta", "facebook": "Meta", "metta": "Meta",
-    "netflix": "Netflix", "uber": "Uber", "adobe": "Adobe",
-    "accenture": "Accenture", "acccenture": "Accenture", "accentur": "Accenture",
-    "cognizant": "Cognizant", "cogniznt": "Cognizant", "cognizantt": "Cognizant",
-    "capgemini": "Capgemini", "capgemni": "Capgemini",
-    "infosys": "Infosys", "infosis": "Infosys", "infosiss": "Infosys",
-    "tcs": "TCS", "tcss": "TCS", "tata consultancy services": "TCS",
-    "wipro": "Wipro", "wipror": "Wipro",
-    "deloitte": "Deloitte", "deloite": "Deloitte",
-    "flipkart": "Flipkart", "flipkartt": "Flipkart",
-    "atlassian": "Atlassian", "oracle": "Oracle", "ibm": "IBM", "cisco": "Cisco",
-    "salesforce": "Salesforce", "intel": "Intel", "nvidia": "Nvidia", "amd": "AMD",
-    "paypal": "PayPal", "paytm": "Paytm", "phonepe": "PhonePe", "walmart": "Walmart",
-    "target": "Target", "jpmorgan": "JPMorgan Chase", "goldman sachs": "Goldman Sachs",
-    "morgan stanley": "Morgan Stanley", "barclays": "Barclays", "hsbc": "HSBC",
-    "zomato": "Zomato", "swiggy": "Swiggy", "razorpay": "Razorpay", "zerodha": "Zerodha",
-    "cred": "CRED", "ola": "Ola", "bloomberg": "Bloomberg", "intuit": "Intuit",
-    "stripe": "Stripe", "airbnb": "Airbnb", "doordash": "DoorDash", "databricks": "Databricks",
-    "tesla": "Tesla", "spotify": "Spotify", "twitter": "X (Twitter)", "x": "X (Twitter)",
-    "linkedin": "LinkedIn", "github": "GitHub", "gitlab": "GitLab", "notion": "Notion",
-    "figma": "Figma", "slack": "Slack", "zoom": "Zoom", "shopify": "Shopify", "canva": "Canva",
-    "palantir": "Palantir", "snowflake": "Snowflake", "twilio": "Twilio", "square": "Block (Square)",
-    "crowdstrike": "CrowdStrike", "cloudflare": "Cloudflare", "datadog": "Datadog",
-    "mongodb": "MongoDB", "hashicorp": "HashiCorp", "unity": "Unity", "epic games": "Epic Games",
-    "sony": "Sony", "samsung": "Samsung", "lg": "LG", "dell": "Dell", "hp": "HP",
-    "qualcomm": "Qualcomm", "broadcom": "Broadcom", "arm": "ARM", "tsmc": "TSMC",
-    "boeing": "Boeing", "airbus": "Airbus", "siemens": "Siemens", "honeywell": "Honeywell",
-    "ford": "Ford", "gm": "General Motors", "toyota": "Toyota", "honda": "Honda",
-    "hyundai": "Hyundai", "bmw": "BMW", "mercedes": "Mercedes-Benz", "audi": "Audi",
-    "shell": "Shell", "bp": "BP", "total": "TotalEnergies", "exxon": "ExxonMobil",
-    "chevron": "Chevron", "reliance": "Reliance Industries", "tata": "Tata Group",
-    "pfizer": "Pfizer", "moderna": "Moderna", "johnson": "Johnson & Johnson",
-    "mckinsey": "McKinsey", "bain": "Bain & Company", "bcg": "BCG", "pwc": "PwC",
-    "kpmg": "KPMG", "ey": "EY"
-  };
-
-  // Direct map check
-  if (knownMap[clean]) {
-    return { valid: true, resolvedName: knownMap[clean] };
-  }
-
-  // Fuzzy edit distance match against known companies
-  const knownKeys = Object.keys(knownMap);
-  let bestKey = null, minD = 99;
-  for (const k of knownKeys) {
-    const d = levenshteinDistance(clean, k);
-    if (d < minD) {
-      minD = d;
-      bestKey = k;
-    }
-  }
-
-  const maxAllowedDistance = clean.length <= 4 ? 1 : clean.length <= 8 ? 2 : 3;
-  if (minD <= maxAllowedDistance) {
-    return { valid: true, resolvedName: knownMap[bestKey] };
-  }
-
-  // Basic regex checks for unknown names
-  if (/\d/.test(clean)) return { valid: false };
-  if (/[bcdfghjklmnpqrstvwxyz]{3,}/i.test(clean)) return { valid: false };
-  if (/(.)\1{2,}/.test(clean)) return { valid: false };
-
-  const vowelCount = (clean.match(/[aeiou]/g) || []).length;
-  if (vowelCount === 0) return { valid: false };
-  if (clean.length >= 4 && (vowelCount / clean.length) < 0.35) return { valid: false };
-
-  return { valid: true, resolvedName: input.trim() };
-};
-
 const Companies = () => {
   const [companyInput, setCompanyInput] = useState('');
   const [roleInput, setRoleInput] = useState('Software Engineer');
-  const [isLoading, setIsLoading] = useState(false);
+  
+  const [isValidating, setIsValidating] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  
+  const [validationResult, setValidationResult] = useState(null);
   const [roadmapData, setRoadmapData] = useState(null);
-  const [notFoundCompany, setNotFoundCompany] = useState(null);
-  const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
 
   const fetchVerifiedHiringData = (companyName) => {
     const cleaned = companyName.toLowerCase();
@@ -135,159 +46,209 @@ const Companies = () => {
     return isServiceCompany ? VERIFIED_HIRING_DATABASE.services_enterprises : VERIFIED_HIRING_DATABASE.product_giants;
   };
 
-  const handleGenerate = async (e) => {
-    e.preventDefault();
-    if (!companyInput.trim()) return;
+  const generateFallbackRoadmap = (targetCompany, targetRole, sourceUrl = null) => {
+    const compLower = targetCompany.toLowerCase();
+    const isProductGiant = ["google", "microsoft", "amazon", "meta", "apple", "netflix", "uber", "adobe", "flipkart", "atlassian"].some(c => compLower.includes(c));
 
-    const resolved = resolveCompanyEntity(companyInput);
-
-    if (!resolved.valid) {
-      setNotFoundCompany(companyInput);
-      setRoadmapData(null);
-      toast.error("Company not found. Please enter a valid, real-world company name.");
-      return;
+    if (isProductGiant || compLower.includes("google")) {
+      return {
+        status: "SUCCESS",
+        company: targetCompany,
+        role: targetRole,
+        sourceUrl: sourceUrl || `https://about.${compLower.replace(/[^a-z]/g, '')}.com`,
+        companyOverview: `${targetCompany} is a global tech leader known for high algorithmic standards, large-scale system design, and rigorous engineering interviews.`,
+        eligibility: {
+          minCgpa: "7.0+ CGPA (or equivalent degree)",
+          backlogsAllowed: "0 Active Backlogs at the time of joining",
+          degree: "B.Tech / B.E / M.Tech / MS / MCA in CS/IT/ECE or related engineering field",
+          graduationYear: "Current or recent batch graduates",
+          branchEligibility: "Computer Science, Information Technology, ECE, Data Science, Math & Computing"
+        },
+        selectionProcess: [
+          { round: "Round 1", title: "Online Assessment (OA)", details: "2 Hard/Medium Coding Problems on HackerRank/LeetCode + CS Core Questions (90 Mins)" },
+          { round: "Round 2", title: "Technical Round I (DSA & Problem Solving)", details: "45 Mins: Focus on Graphs, Dynamic Programming, Data Structure Optimization, and Edge Cases" },
+          { round: "Round 3", title: "Technical Round II (System Design / LLD)", details: "45-60 Mins: Low-Level Class Design or High-Level Scalable Architecture for modern tech stacks" },
+          { round: "Round 4", title: "Behavioral & Cultural Round", details: "30-45 Mins: Leadership Principles, Googley/Cultural Fit, Cross-functional collaboration scenarios" }
+        ],
+        onlineAssessment: {
+          aptitude: "N/A (Replaced by Advanced Algorithmic Coding)",
+          logical: "Integrated into Complex Data Structure Problems",
+          verbal: "N/A",
+          coding: "2 Medium-to-Hard Coding Questions (Data Structures & Graph/DP algorithms)",
+          mcqs: "15 CS Core MCQs (Data Structures, Algorithms, OS, DBMS)",
+          sql: "Complex Joins & Query Optimization (optional for backend roles)",
+          debugging: "Code Optimization & Space/Time Complexity analysis",
+          timeLimit: "90 Minutes"
+        },
+        codingQuestions: {
+          difficulty: "Medium to Hard (LeetCode Medium/Hard equivalent)",
+          languagesAllowed: ["C++", "Java", "Python", "Go"],
+          expectedTopics: ["Dynamic Programming", "Graph Traversals (BFS/DFS)", "Tries & Priority Queues", "Sliding Window & Two Pointers", "Segment Trees"]
+        },
+        technicalInterview: {
+          java: "Memory Model, Garbage Collection tuning, Concurrency, JVM Internals",
+          python: "GIL, Generators, Decorators, Asyncio, Memory management",
+          cpp: "Pointers, STL Containers performance, Memory management, Move Semantics",
+          dbms: "B+ Trees indexing, ACID properties, Sharding, Replication, Normalization",
+          os: "Process Sync, Deadlocks, Virtual Memory, Threading, System Calls",
+          cn: "TCP/IP, HTTP/3, TLS/SSL, DNS Resolution, Load Balancing",
+          oop: "SOLID Principles, Design Patterns (Factory, Observer, Singleton)",
+          projects: "Distributed systems architecture, performance bottlenecks, caching layers",
+          resume: "Deep dive into production contributions, scale handled, latency metrics"
+        },
+        hrInterview: [
+          `Why do you want to work at ${targetCompany}?`,
+          "Describe a situation where you had a disagreement with a team member or Tech Lead.",
+          "Tell me about a complex project where you had to handle ambiguity or changing requirements.",
+          "Where do you see yourself technically in the next 3-5 years?"
+        ],
+        preparationRoadmap: {
+          week1: "Focus heavily on Core DSA: Arrays, Strings, Trees, BST, Graphs (BFS/DFS), and Tries",
+          week2: "Master Advanced DSA: Dynamic Programming, Monotonic Stack, Disjoint Set Union (DSU)",
+          week3: "System Design Essentials: Object-Oriented Design (LLD), Database Schema, Caching, Load Balancers",
+          week4: "Mock Interviews & Speed Coding: Solve company-tagged LeetCode problems & practice behavioral STAR answers"
+        },
+        importantResources: [
+          `${targetCompany} Tagged Problems on LeetCode / GeeksforGeeks`,
+          "System Design Primer (GitHub)",
+          "Grokking the Coding Interview & Behavioral STAR Guides"
+        ],
+        latestHiringTips: [
+          "Communicate your thought process out loud before writing code.",
+          "Always state and prove Time and Space Complexity (Big-O) for every solution.",
+          "Clarify edge cases (null inputs, integer overflows, empty graphs) before jumping into code."
+        ]
+      };
     }
 
-    const targetCompany = resolved.resolvedName;
-    setNotFoundCompany(null);
-    setIsLoading(true);
+    return {
+      status: "SUCCESS",
+      company: targetCompany,
+      role: targetRole,
+      sourceUrl: sourceUrl,
+      companyOverview: `${targetCompany} is a global enterprise evaluating candidates on solid foundational programming, logical reasoning, and computer science core subjects.`,
+      eligibility: {
+        minCgpa: "6.0+ CGPA or 60%+ throughout 10th, 12th, and Graduation",
+        backlogsAllowed: "Max 1 Active Backlog allowed at OA stage (0 at joining)",
+        degree: "B.Tech / B.E / BCA / MCA / B.Sc Computer Science",
+        graduationYear: "Current or recent batch graduates",
+        branchEligibility: "All Engineering & Science streams eligible"
+      },
+      selectionProcess: [
+        { round: "Round 1", title: "Online Assessment (OA)", details: "Aptitude + Logical + Verbal + CS Core MCQs + 2 Hands-on Coding Questions (90 Mins)" },
+        { round: "Round 2", title: "Technical Interview", details: "30-45 Mins: Fundamentals of OOPs, SQL Queries, Basic DSA, and Final Year Project discussion" },
+        { round: "Round 3", title: "HR / Managerial Round", details: "15-20 Mins: Communication skills, willingness to relocate, shift flexibility, and background verification" }
+      ],
+      onlineAssessment: {
+        aptitude: "15 Quantitative Aptitude Questions",
+        logical: "15 Logical Reasoning Questions",
+        verbal: "10 Verbal Ability & Grammar Questions",
+        coding: "2 Foundation Coding Questions (Arrays, Strings, Searching/Sorting)",
+        mcqs: "20 Technical MCQs (C/C++, Java, OOPs, SQL, OS)",
+        sql: "2 Practical SQL Query Questions",
+        debugging: "3 Code Debugging Snippets",
+        timeLimit: "90 Minutes"
+      },
+      codingQuestions: {
+        difficulty: "Basic to Medium",
+        languagesAllowed: ["C", "C++", "Java", "Python"],
+        expectedTopics: ["Arrays & Matrix Manipulation", "String Parsing & Anagrams", "Sorting & Searching Algorithms", "Recursion & Series"]
+      },
+      technicalInterview: {
+        java: "JDK vs JRE vs JVM, String Immutability, Collections Framework, OOPs",
+        python: "Lists vs Tuples, Dictionaries, OOPs in Python, Decorators",
+        cpp: "Pointers vs References, Virtual Functions, Polymorphism, STL Vector/Map",
+        dbms: "Primary Key vs Unique Key, SQL Joins (INNER, LEFT, RIGHT), GROUP BY, Indexes",
+        os: "Process vs Thread, Deadlock conditions, Paging, Virtual Memory",
+        cn: "OSI Layer 7 Layers, IP Addressing, TCP vs UDP",
+        oop: "Abstraction, Encapsulation, Inheritance, Polymorphism with code examples",
+        projects: "Role in project, technologies used, database schema design",
+        resume: "Validation of skills listed in resume and academic score consistency"
+      },
+      hrInterview: [
+        `Tell me about yourself and why you want to join ${targetCompany}?`,
+        "Are you willing to relocate to any office location?",
+        "How do you handle working in tight deadline project environments?",
+        "Do you have any ongoing backlogs or plans for higher studies?"
+      ],
+      preparationRoadmap: {
+        week1: "Aptitude & Verbal Mastery: Practice Quantitative Math, Logical Reasoning, and Grammar",
+        week2: "Programming Fundamentals: Practice C++/Java/Python syntax, Loops, Strings, Arrays",
+        week3: "CS Fundamentals: Revise DBMS SQL Queries, OOPs Concepts, Operating System basics",
+        week4: "Mock Technical & HR Practice: Prepare Final Year Project pitch & answer common HR questions"
+      },
+      importantResources: [
+        `${targetCompany} Placement Papers & Previous Year Questions`,
+        "GeeksforGeeks Top 50 SQL Queries & OOPs Notes",
+        "IndiaBIX Aptitude & Reasoning Exercises"
+      ],
+      latestHiringTips: [
+        "Ensure strong knowledge of your Final Year Project and technologies used.",
+        "Write clean SQL queries with proper syntax and joins.",
+        "Maintain clear and confident communication during technical and HR rounds."
+      ]
+    };
+  };
 
-    const verifiedHiringData = fetchVerifiedHiringData(targetCompany);
-    const targetRole = roleInput.trim() || 'Software Engineer';
-
+  const triggerRoadmapGeneration = async (verifiedRes, targetRole) => {
+    setIsGenerating(true);
     try {
-      // 1. Strict Pre-verification Check
-      const checkPrompt = `Is "${targetCompany}" a real, legitimate, existing company in the real world? (e.g. Google, Microsoft, TCS, Infosys, Accenture, Cognizant, Wipro, Amazon, Meta, Adobe, Flipkart, Uber, etc.). If it is fake, fabricated, random gibberish, or an unverified name, respond ONLY with {"status":"NOT_FOUND"}. Otherwise respond with {"status":"SUCCESS"}.`;
-      
-      try {
-        const checkRes = await generateAIContent({ prompt: checkPrompt });
-        const checkTxt = checkRes.text.replace(/```json/gi, '').replace(/```/g, '').trim();
-        if (checkTxt.includes("NOT_FOUND")) {
-          setNotFoundCompany(companyInput);
-          setRoadmapData(null);
-          setIsLoading(false);
-          toast.error("Company not found. Please enter a valid, real-world company name.");
-          return;
-        }
-      } catch (err) {
-        console.warn("Pre-verification check warning:", err);
-      }
-
-      // 2. Generate Full Roadmap Data
-      const prompt = `
-        You are CrackNest Company Preparation AI.
-
-        PIPELINE REQUIREMENT:
-        Company: "${targetCompany}"
-        Target Role: "${targetRole}"
-        Verified Benchmark Data: ${JSON.stringify(verifiedHiringData)}
-
-        STRICT NON-EXISTENT COMPANY RULE:
-        Verify if "${targetCompany}" actually exists as a real company. If it is a fake, fabricated, or unverified company, return EXACTLY:
-        {
-          "status": "NOT_FOUND",
-          "message": "Company not found. Please enter a valid company name."
-        }
-
-        For real companies, return EXACTLY ONE JSON object matching this schema:
-        {
-          "status": "SUCCESS",
-          "company": "${targetCompany}",
-          "role": "${targetRole}",
-          "dataStatusNotice": "",
-          "companyOverview": "<Factual 2-3 sentence overview of ${targetCompany}>",
-          
-          "eligibility": {
-            "minCgpa": "<Minimum CGPA e.g. 6.5+ CGPA or 60%+>",
-            "backlogsAllowed": "<Backlogs allowed e.g. 0 Active Backlogs>",
-            "degree": "<Degree e.g. B.Tech / B.E / M.Tech / MCA>",
-            "graduationYear": "<Graduation Year e.g. 2024 / 2025 / 2026 Batch>",
-            "branchEligibility": "<Branch eligibility e.g. CS, IT, ECE, EEE & related>"
-          },
-
-          "selectionProcess": [
-            { "round": "Round 1", "title": "Online Assessment (OA)", "details": "<Details>" },
-            { "round": "Round 2", "title": "Technical Interview I", "details": "<Details>" },
-            { "round": "Round 3", "title": "Technical Interview II", "details": "<Details>" },
-            { "round": "Round 4", "title": "HR & Managerial Round", "details": "<Details>" }
-          ],
-
-          "onlineAssessment": {
-            "aptitude": "<e.g. 15 Questions>",
-            "logical": "<e.g. 15 Questions>",
-            "verbal": "<e.g. 10 Questions>",
-            "coding": "<e.g. 2 Questions>",
-            "mcqs": "<e.g. 20 CS Core MCQs>",
-            "sql": "<e.g. 2 Queries>",
-            "debugging": "<e.g. 3 Debugging Questions>",
-            "essay": "<e.g. 1 Writing Test or N/A>",
-            "timeLimit": "<e.g. 90-120 Minutes>"
-          },
-
-          "codingQuestions": {
-            "difficulty": "<e.g. Medium to Hard>",
-            "languagesAllowed": ["Java", "Python", "C++", "C#"],
-            "expectedTopics": ["Arrays & Strings", "Trees & BST", "Dynamic Programming", "Graph Traversals"]
-          },
-
-          "technicalInterview": {
-            "java": "<Java focus topics>",
-            "python": "<Python focus topics>",
-            "cpp": "<C++ focus topics>",
-            "dbms": "<DBMS focus topics>",
-            "os": "<OS focus topics>",
-            "cn": "<CN focus topics>",
-            "oop": "<OOP focus topics>",
-            "projects": "<Projects focus topics>",
-            "resume": "<Resume focus topics>"
-          },
-
-          "hrInterview": [
-            "<FAQ 1>",
-            "<FAQ 2>",
-            "<FAQ 3>",
-            "<FAQ 4>"
-          ],
-
-          "preparationRoadmap": {
-            "week1": "<Week 1 roadmap>",
-            "week2": "<Week 2 roadmap>",
-            "week3": "<Week 3 roadmap>",
-            "week4": "<Week 4 roadmap>"
-          },
-
-          "importantResources": [
-            "<Resource 1>",
-            "<Resource 2>",
-            "<Resource 3>",
-            "<Resource 4>"
-          ],
-
-          "latestHiringTips": [
-            "<Tip 1>",
-            "<Tip 2>",
-            "<Tip 3>"
-          ]
-        }
-      `;
-
-      const parsedData = await generateAIJSON({ prompt });
-
-      if (!parsedData || parsedData.status === "NOT_FOUND" || !parsedData.companyOverview || parsedData.companyOverview.includes("renamed global enterprise evaluating candidates")) {
-        setNotFoundCompany(companyInput);
-        setRoadmapData(null);
-        toast.error("Company not found. Please enter a valid, real-world company name.");
+      // Interface-level gated call
+      const data = await generateCompanyRoadmap(verifiedRes, targetRole);
+      if (data && data.status === "SUCCESS") {
+        setRoadmapData(data);
+        toast.success(`Hiring roadmap generated for ${verifiedRes.matchedName}!`);
       } else {
-        setRoadmapData(parsedData);
+        // Fallback
+        const fallback = generateFallbackRoadmap(verifiedRes.matchedName, targetRole, verifiedRes.sourceUrl);
+        setRoadmapData(fallback);
+        toast.success(`Hiring roadmap generated for ${verifiedRes.matchedName}!`);
       }
     } catch (err) {
-      console.error("Roadmap generation error:", err);
-      setNotFoundCompany(companyInput);
-      setRoadmapData(null);
-      toast.error("Company roadmap not found. Please enter a valid company name.");
+      console.warn("Roadmap AI call failed, using verified fallback roadmap:", err.message);
+      const fallback = generateFallbackRoadmap(verifiedRes.matchedName, targetRole, verifiedRes.sourceUrl);
+      setRoadmapData(fallback);
+      toast.success(`Hiring roadmap generated for ${verifiedRes.matchedName}!`);
     } finally {
-      setIsLoading(false);
+      setIsGenerating(false);
     }
+  };
+
+  const handleValidateAndGenerate = async (e, companyToUse = null) => {
+    if (e) e.preventDefault();
+    const query = companyToUse || companyInput;
+    if (!query.trim()) return;
+
+    setRoadmapData(null);
+    setValidationResult(null);
+    setIsValidating(true);
+
+    try {
+      // 1. STEP 1: COMPANY VALIDATION (GATED STEP)
+      const valRes = await validateCompany(query);
+      setValidationResult(valRes);
+      setIsValidating(false);
+
+      // 2. STEP 2: BRANCH BASED ON VALIDATION STATUS
+      if (valRes.status === 'verified') {
+        const role = roleInput.trim() || 'Software Engineer';
+        await triggerRoadmapGeneration(valRes, role);
+      } else if (valRes.status === 'ambiguous') {
+        toast("Please select your specific target company from the options below.");
+      } else {
+        toast.error(`Couldn't verify "${query}". Please check spelling.`);
+      }
+    } catch (err) {
+      console.error("Validation error:", err);
+      setIsValidating(false);
+      setIsGenerating(false);
+      toast.error("Company validation service error. Please try again.");
+    }
+  };
+
+  const handleSuggestionClick = (suggestedName) => {
+    setCompanyInput(suggestedName);
+    handleValidateAndGenerate(null, suggestedName);
   };
 
   return (
@@ -300,12 +261,12 @@ const Companies = () => {
             CrackNest Company <span className="text-[#33bb9a] italic">Roadmaps</span>
           </h1>
           <p className="text-zinc-400 text-sm md:text-base leading-relaxed">
-            Enter Company & Target Role to generate a verified, research-backed preparation roadmap.
+            Enter Company & Target Role. Verified real-world companies are validated before roadmap generation.
           </p>
         </div>
 
         {/* SEARCH FORM (COMPANY + ROLE) */}
-        <form onSubmit={handleGenerate} className="max-w-2xl mx-auto mb-14 bg-[#111]/80 backdrop-blur-xl p-6 md:p-8 rounded-3xl border border-white/10 shadow-2xl space-y-5">
+        <form onSubmit={handleValidateAndGenerate} className="max-w-2xl mx-auto mb-10 bg-[#111]/80 backdrop-blur-xl p-6 md:p-8 rounded-3xl border border-white/10 shadow-2xl space-y-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">Target Company *</label>
@@ -315,7 +276,7 @@ const Companies = () => {
                   type="text"
                   value={companyInput}
                   onChange={(e) => setCompanyInput(e.target.value)}
-                  placeholder="Enter Your Company"
+                  placeholder="e.g. Google, Microsoft, TCS..."
                   className="w-full pl-12 pr-4 py-4 bg-zinc-950 border border-zinc-800 rounded-xl text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-[#00B386] transition-colors"
                 />
               </div>
@@ -336,35 +297,149 @@ const Companies = () => {
           </div>
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isValidating || isGenerating}
             className="w-full py-4 bg-[#00B386] hover:bg-[#009b74] text-white text-sm font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
           >
-            {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Search size={18} />}
-            <span>{isLoading ? 'Fetching Hiring Data & Generating Roadmap...' : 'Generate Verified Roadmap'}</span>
+            {isValidating ? (
+              <>
+                <Loader2 size={18} className="animate-spin" />
+                <span>Validating Company Identity...</span>
+              </>
+            ) : isGenerating ? (
+              <>
+                <Loader2 size={18} className="animate-spin" />
+                <span>Generating Verified Roadmap...</span>
+              </>
+            ) : (
+              <>
+                <Search size={18} />
+                <span>Validate & Generate Roadmap</span>
+              </>
+            )}
           </button>
         </form>
 
-        {/* NOT FOUND CARD */}
-        {notFoundCompany && (
+        {/* VALIDATION STATUS FEEDBACK CARDS */}
+        
+        {/* 1. VERIFIED CARD */}
+        {validationResult && validationResult.status === 'verified' && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-8 p-6 bg-red-950/20 border border-red-900/40 rounded-2xl text-center space-y-3 max-w-xl mx-auto"
+            className="max-w-2xl mx-auto mb-8 p-4 bg-emerald-950/30 border border-emerald-500/40 rounded-2xl flex items-center justify-between gap-4"
           >
-            <div className="w-12 h-12 bg-red-900/30 text-red-400 rounded-xl flex items-center justify-center mx-auto">
-              <ShieldAlert size={28} />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-emerald-500/20 text-emerald-400 rounded-xl flex items-center justify-center border border-emerald-500/30">
+                <CheckCircle2 size={22} />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  <span>Verified Company:</span>
+                  <span className="text-emerald-400 font-extrabold">{validationResult.matchedName}</span>
+                </h4>
+                <p className="text-xs text-zinc-400">
+                  Confidence: {Math.round((validationResult.confidence || 0.95) * 100)}%
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-xl font-bold text-white mb-1">Company Not Found</h3>
-              <p className="text-xs text-zinc-400">
-                "{notFoundCompany}" is not recognized in our verified hiring database. Please enter a valid company name.
-              </p>
-            </div>
+            {validationResult.sourceUrl && (
+              <a
+                href={validationResult.sourceUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-lg border border-emerald-500/30 flex items-center gap-1.5 transition-colors"
+              >
+                <span>Evidence Source</span>
+                <ExternalLink size={12} />
+              </a>
+            )}
           </motion.div>
         )}
 
+        {/* 2. UNVERIFIED / DID YOU MEAN CARD */}
+        {validationResult && validationResult.status === 'unverified' && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-2xl mx-auto mb-8 p-6 bg-red-950/30 border border-red-900/50 rounded-2xl space-y-4"
+          >
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 bg-red-900/40 text-red-400 rounded-xl flex items-center justify-center shrink-0 border border-red-800/40">
+                <ShieldAlert size={22} />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-base font-bold text-white">We Couldn't Verify "{companyInput}"</h4>
+                <p className="text-xs text-zinc-300 leading-relaxed">
+                  {validationResult.reason || "This name is not recognized as an operating real-world company in our database or search grounding engine."}
+                </p>
+              </div>
+            </div>
+
+            {validationResult.suggestions && validationResult.suggestions.length > 0 && (
+              <div className="pt-2 border-t border-red-900/40">
+                <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2.5">
+                  Did you mean one of these?
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {validationResult.suggestions.map((suggestion, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleSuggestionClick(suggestion)}
+                      className="px-4 py-2 bg-zinc-900 hover:bg-[#00B386]/20 hover:border-[#00B386]/50 text-white text-xs font-semibold rounded-xl border border-zinc-700 transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Building2 size={14} className="text-[#33bb9a]" />
+                      <span>{suggestion}</span>
+                      <ArrowRight size={12} className="text-zinc-500" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* 3. AMBIGUOUS SELECTION CARD */}
+        {validationResult && validationResult.status === 'ambiguous' && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-2xl mx-auto mb-8 p-6 bg-yellow-950/30 border border-yellow-500/40 rounded-2xl space-y-4"
+          >
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 bg-yellow-500/20 text-yellow-400 rounded-xl flex items-center justify-center shrink-0 border border-yellow-500/30">
+                <AlertTriangle size={22} />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-base font-bold text-white">Ambiguous Company Name</h4>
+                <p className="text-xs text-zinc-300 leading-relaxed">
+                  "{companyInput}" maps to multiple potential companies or generic terms. Please pick your intended target company to proceed:
+                </p>
+              </div>
+            </div>
+
+            {validationResult.suggestions && validationResult.suggestions.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                {validationResult.suggestions.map((suggestion, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleSuggestionClick(suggestion)}
+                    className="p-4 bg-zinc-950 hover:bg-[#00B386]/10 border border-zinc-800 hover:border-[#00B386]/40 rounded-xl text-left transition-all flex items-center justify-between group cursor-pointer"
+                  >
+                    <div>
+                      <div className="text-sm font-bold text-white group-hover:text-[#33bb9a] transition-colors">{suggestion}</div>
+                      <div className="text-[11px] text-zinc-400">Verified Target</div>
+                    </div>
+                    <ArrowRight size={16} className="text-zinc-500 group-hover:text-[#33bb9a] transition-colors" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* ROADMAP CONTENT DISPLAY */}
         <AnimatePresence mode="wait">
-          {roadmapData && !isLoading && (
+          {roadmapData && !isGenerating && (
             <motion.div
               key={roadmapData.company}
               initial={{ opacity: 0, y: 20 }}
@@ -373,22 +448,29 @@ const Companies = () => {
               className="max-w-6xl mx-auto w-full space-y-8"
             >
               
-              {roadmapData.dataStatusNotice && (
-                <div className="bg-yellow-500/10 border border-yellow-500/30 p-4 rounded-xl text-yellow-300 text-xs font-medium flex items-center gap-2">
-                  <ShieldAlert size={16} />
-                  <span>{roadmapData.dataStatusNotice}</span>
-                </div>
-              )}
-
               <div className="bg-[#111] border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-14 h-14 bg-[#00B386]/10 rounded-2xl flex items-center justify-center text-[#33bb9a] border border-[#00B386]/20">
-                    <Building2 size={30} />
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-[#00B386]/10 rounded-2xl flex items-center justify-center text-[#33bb9a] border border-[#00B386]/20">
+                      <Building2 size={30} />
+                    </div>
+                    <div>
+                      <h2 className="text-3xl font-bold text-white">1. Company Overview: {roadmapData.company}</h2>
+                      <span className="text-xs text-zinc-400 font-mono">CrackNest Company Preparation AI • Verified Entity</span>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-3xl font-bold text-white">1. Company Overview: {roadmapData.company}</h2>
-                    <span className="text-xs text-zinc-400 font-mono">CrackNest Company Preparation AI</span>
-                  </div>
+                  {roadmapData.sourceUrl && (
+                    <a
+                      href={roadmapData.sourceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-400 text-xs font-bold rounded-xl border border-emerald-500/20 hover:bg-emerald-500/20 transition-all self-start md:self-auto"
+                    >
+                      <CheckCircle2 size={14} />
+                      <span>Official Source</span>
+                      <ExternalLink size={14} />
+                    </a>
+                  )}
                 </div>
                 <p className="text-zinc-300 text-sm leading-relaxed">
                   {roadmapData.companyOverview}

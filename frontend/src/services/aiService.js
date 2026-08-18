@@ -1,21 +1,25 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const MODEL_CANDIDATES = [
-  'gemini-flash-latest',
-  'gemma-4-26b-a4b-it',
-  'gemma-4-31b-it',
-  'gemini-2.0-flash',
+  'gemini-2.5-flash',
+  'gemini-3.6-flash',
+  'gemini-1.5-flash',
   'gemini-2.0-flash-lite',
-  'gemini-2.0-flash-001'
+  'gemini-1.5-pro',
+  'gemini-flash-latest'
 ];
 
+
 export const getActiveApiKey = () => {
-  const customKey = localStorage.getItem('user_gemini_api_key');
-  if (customKey && customKey.trim().length > 10) {
-    return customKey.trim();
+  if (typeof localStorage !== 'undefined') {
+    const customKey = localStorage.getItem('user_gemini_api_key');
+    if (customKey && customKey.trim().length > 10) {
+      return customKey.trim();
+    }
   }
-  return import.meta.env.VITE_GEMINI_API_KEY || "";
+  return (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_GEMINI_API_KEY) || "";
 };
+
 
 export const setCustomApiKey = (key) => {
   if (key && key.trim()) {
@@ -43,6 +47,8 @@ export const generateAIContent = async ({ prompt, filePart, systemInstruction })
       if (systemInstruction) {
         modelOptions.systemInstruction = systemInstruction;
       }
+
+      const model = genAI.getGenerativeModel(modelOptions);
 
       let formattedFilePart = null;
       if (filePart) {
@@ -177,3 +183,107 @@ export class RobustAIChatSession {
     }
   }
 }
+
+/**
+ * Interface-gated Roadmap Generator.
+ * REQUIRES a verified CompanyValidationResult as input.
+ * Throws a runtime gating error if input is not verified.
+ * 
+ * @param {{ status: string, matchedName: string|null, confidence: number, sourceUrl: string|null }} validationResult 
+ * @param {string} roleInput 
+ */
+export const generateCompanyRoadmap = async (validationResult, roleInput = 'Software Engineer') => {
+  if (!validationResult || typeof validationResult !== 'object') {
+    throw new Error("GATING_ERROR: Invalid company validation result passed to roadmap generator.");
+  }
+
+  if (validationResult.status !== 'verified' || !validationResult.matchedName) {
+    throw new Error(`GATING_ERROR: Cannot generate company roadmap for status '${validationResult?.status || 'unknown'}'. Company validation with 'verified' status is strictly required.`);
+  }
+
+  const targetCompany = validationResult.matchedName;
+  const targetRole = (roleInput && roleInput.trim()) ? roleInput.trim() : 'Software Engineer';
+  const sourceUrl = validationResult.sourceUrl;
+
+  const prompt = `
+    You are CrackNest Company Preparation AI.
+
+    PIPELINE REQUIREMENT:
+    Verified Target Company: "${targetCompany}" (Evidence Source: ${sourceUrl || 'Official Website'})
+    Target Role: "${targetRole}"
+
+    Generate a comprehensive, accurate company hiring roadmap for "${targetCompany}" for the role "${targetRole}".
+    Return EXACTLY ONE valid JSON object with this schema:
+    {
+      "status": "SUCCESS",
+      "company": "${targetCompany}",
+      "role": "${targetRole}",
+      "sourceUrl": "${sourceUrl || ''}",
+      "companyOverview": "<Factual 2-3 sentence overview of ${targetCompany}>",
+      "eligibility": {
+        "minCgpa": "<Minimum CGPA e.g. 6.5+ CGPA>",
+        "backlogsAllowed": "<Backlogs allowed e.g. 0 Active Backlogs>",
+        "degree": "<Eligible Degrees e.g. B.Tech / B.E / M.Tech / MCA>",
+        "graduationYear": "<Batch eligibility e.g. 2024 / 2025 / 2026 Batch>",
+        "branchEligibility": "<Branch eligibility e.g. CS, IT, ECE, EEE & related>"
+      },
+      "selectionProcess": [
+        { "round": "Round 1", "title": "Online Assessment (OA)", "details": "<Details>" },
+        { "round": "Round 2", "title": "Technical Interview I", "details": "<Details>" },
+        { "round": "Round 3", "title": "Technical Interview II", "details": "<Details>" },
+        { "round": "Round 4", "title": "HR & Managerial Round", "details": "<Details>" }
+      ],
+      "onlineAssessment": {
+        "aptitude": "<Aptitude section breakdown>",
+        "logical": "<Logical section breakdown>",
+        "verbal": "<Verbal section breakdown>",
+        "coding": "<Coding questions breakdown>",
+        "mcqs": "<CS Core MCQs>",
+        "sql": "<SQL queries requirement>",
+        "debugging": "<Debugging questions>",
+        "timeLimit": "<Time limit e.g. 90-120 Minutes>"
+      },
+      "codingQuestions": {
+        "difficulty": "<Difficulty level>",
+        "languagesAllowed": ["Java", "Python", "C++", "C#"],
+        "expectedTopics": ["Arrays & Strings", "Trees & BST", "Dynamic Programming", "Graphs"]
+      },
+      "technicalInterview": {
+        "java": "<Java focus topics>",
+        "python": "<Python focus topics>",
+        "cpp": "<C++ focus topics>",
+        "dbms": "<DBMS focus topics>",
+        "os": "<OS focus topics>",
+        "cn": "<CN focus topics>",
+        "oop": "<OOP focus topics>",
+        "projects": "<Projects focus topics>",
+        "resume": "<Resume focus topics>"
+      },
+      "hrInterview": [
+        "<Behavioral / HR question 1>",
+        "<Behavioral / HR question 2>",
+        "<Behavioral / HR question 3>",
+        "<Behavioral / HR question 4>"
+      ],
+      "preparationRoadmap": {
+        "week1": "<Week 1 study focus>",
+        "week2": "<Week 2 study focus>",
+        "week3": "<Week 3 study focus>",
+        "week4": "<Week 4 study focus>"
+      },
+      "importantResources": [
+        "<Resource 1>",
+        "<Resource 2>",
+        "<Resource 3>"
+      ],
+      "latestHiringTips": [
+        "<Hiring Tip 1>",
+        "<Hiring Tip 2>",
+        "<Hiring Tip 3>"
+      ]
+    }
+  `;
+
+  return await generateAIJSON({ prompt });
+};
+

@@ -1,17 +1,21 @@
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Set fallback worker URL for pdfjs-dist
-if (typeof window !== 'undefined') {
+// Safely configure pdfjs worker without causing module evaluation failures
+const ensureWorkerSrc = () => {
   try {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version || '3.11.174'}/build/pdf.worker.min.mjs`;
+    if (typeof window !== 'undefined' && pdfjsLib && pdfjsLib.GlobalWorkerOptions) {
+      if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+      }
+    }
   } catch (e) {
-    console.warn("Could not set pdfjs workerSrc", e);
+    console.warn("[FileParser] pdfjs worker configuration warning:", e);
   }
-}
+};
 
 /**
  * Native Pure-JS PDF Buffer Stream Text Extractor
- * Extracts readable text from PDF streams (Tj, TJ operators, BT...ET blocks)
+ * Extracts readable text from PDF streams (Tj, TJ operators, BT...ET blocks, and printable ASCII text)
  * Works 100% offline without external network or worker dependencies
  */
 export const extractPdfTextNative = (arrayBuffer) => {
@@ -52,17 +56,38 @@ export const extractPdfTextNative = (arrayBuffer) => {
       }
     }
 
+    // 3. Fallback: Printable ASCII text blocks if stream operators were compressed
+    if (extractedStrings.length < 10) {
+      const textBlocks = raw.match(/[\x20-\x7E\t\r\n]{4,}/g) || [];
+      const keywordsToExclude = [
+        'obj', 'endobj', 'stream', 'endstream', 'xref', 'trailer', 'startxref',
+        'Catalog', 'Pages', 'Page', 'Font', 'Encoding', 'MediaBox', 'Contents',
+        'Type', 'Subtype', 'Filter', 'FlateDecode', 'Length', 'Parent', 'Resources'
+      ];
+      for (const block of textBlocks) {
+        const trimmed = block.trim();
+        if (
+          trimmed.length >= 4 &&
+          /[a-zA-Z]{2,}/.test(trimmed) &&
+          !keywordsToExclude.some(kw => trimmed.startsWith('/' + kw) || trimmed === kw)
+        ) {
+          extractedStrings.push(trimmed);
+        }
+      }
+    }
+
     const fullNativeText = extractedStrings.join(' ');
 
     // Filter out PDF stream noise and keep clean text words
     const cleanWords = fullNativeText.split(/\s+/).filter(w => {
       if (w.length < 2) return false;
+      if (w.startsWith('/') || w.includes('<<') || w.includes('>>')) return false;
       if (/^[0-9.#]+$/.test(w)) return true;
       return /[a-zA-Z0-9]/.test(w);
     });
 
     const result = cleanWords.join(' ');
-    if (result && result.length > 40) {
+    if (result && result.length > 30) {
       return result;
     }
   } catch (err) {
@@ -76,34 +101,42 @@ export const extractPdfTextNative = (arrayBuffer) => {
  */
 export const extractTextFromPdf = async (file) => {
   try {
+    ensureWorkerSrc();
     const arrayBuffer = await file.arrayBuffer();
 
-    // Engine 1: Native Stream Parser (Instant & 100% reliable)
-    const nativeText = extractPdfTextNative(arrayBuffer);
-
-    // Engine 2: pdfjs-dist Browser Parser
+    // Engine 1: pdfjs-dist Browser Parser
     let pdfjsText = "";
     try {
-      const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) });
-      const pdf = await loadingTask.promise;
+      if (pdfjsLib && pdfjsLib.getDocument) {
+        const loadingTask = pdfjsLib.getDocument({ 
+          data: new Uint8Array(arrayBuffer),
+          useSystemFonts: true
+        });
+        const pdf = await loadingTask.promise;
 
-      let pagesText = [];
-      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-        const page = await pdf.getPage(pageNum);
-        const textContent = await page.getTextContent();
+        let pagesText = [];
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          const page = await pdf.getPage(pageNum);
+          const textContent = await page.getTextContent();
 
-        let pageStr = textContent.items.map(item => item.str).filter(Boolean).join(' ');
-        pagesText.push(pageStr);
+          let pageStr = textContent.items.map(item => item.str).filter(Boolean).join(' ');
+          pagesText.push(pageStr);
+        }
+        pdfjsText = pagesText.join('\n\n');
       }
-      pdfjsText = pagesText.join('\n\n');
     } catch (e) {
       console.warn("[FileParser] pdfjs-dist engine failed, using native engine:", e);
     }
 
+    // Engine 2: Native Stream Parser
+    const nativeText = extractPdfTextNative(arrayBuffer);
+
     // Combine best available text
     const finalText = (pdfjsText && pdfjsText.trim().length > 50) 
       ? pdfjsText.trim() 
-      : nativeText;
+      : (nativeText && nativeText.trim().length > 30)
+      ? nativeText.trim()
+      : pdfjsText.trim();
 
     if (finalText && finalText.length > 20) {
       return finalText;
@@ -128,21 +161,35 @@ export const extractTextFromPdf = async (file) => {
  * Returns generative part for Gemini API plus extracted plain text
  */
 export const fileToGenerativePart = async (file) => {
-  const extractedText = await extractTextFromPdf(file);
+  try {
+    const extractedText = await extractTextFromPdf(file);
 
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64Data = reader.result.split(',')[1];
-      resolve({
-        inlineData: {
-          data: base64Data,
-          mimeType: file.type
-        },
-        extractedText
-      });
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const resultString = typeof reader.result === 'string' ? reader.result : '';
+        const base64Data = resultString.includes(',') ? resultString.split(',')[1] : resultString;
+        resolve({
+          inlineData: {
+            data: base64Data,
+            mimeType: file?.type || 'application/pdf'
+          },
+          extractedText: extractedText || ""
+        });
+      };
+      reader.onerror = () => {
+        resolve({
+          inlineData: null,
+          extractedText: extractedText || ""
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+  } catch (err) {
+    console.error("[FileParser] fileToGenerativePart error:", err);
+    return {
+      inlineData: null,
+      extractedText: ""
     };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+  }
 };

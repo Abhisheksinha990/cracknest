@@ -239,9 +239,13 @@ const MockInterviews = () => {
       await chatSession.init();
       chatRef.current = chatSession;
 
-      let prompt = `Hello, I am ${user?.name || 'the candidate'}. I am ready to begin my 8-question mock interview for the ${role} position at ${company}. Please ask me Question 1.`;
+      let resumeText = "";
       if (fileContent) {
-        prompt = `I have attached my resume details:\n${fileContent}\n\nPlease base relevant project, tech stack, and experience questions directly on my resume.\n\n${prompt}`;
+        resumeText = fileContent.extractedText || (typeof fileContent === 'string' ? fileContent : "");
+      }
+      let prompt = `Hello, I am ${user?.name || 'the candidate'}. I am ready to begin my 8-question mock interview for the ${role} position at ${company}. Please ask me Question 1 tailored specifically to ${company}'s interview process and my target role.`;
+      if (resumeText && resumeText.trim()) {
+        prompt = `Candidate Resume Content:\n${resumeText.trim()}\n\nCRITICAL: You MUST ask questions directly referencing the candidate's actual projects, skills, and experience from their resume above whenever relevant.\n\n${prompt}`;
       }
       
       const text = await chatSession.sendMessage(prompt);
@@ -283,7 +287,8 @@ const MockInterviews = () => {
       return;
     }
 
-    if (!apiKey || !chatRef.current) {
+    const activeKey = getActiveApiKey();
+    if (!activeKey || !chatRef.current) {
       setTimeout(() => {
         const nextCount = questionCount + 1;
         
