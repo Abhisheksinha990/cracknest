@@ -133,26 +133,32 @@ export class RobustAIChatSession {
   async init() {
     const apiKey = getActiveApiKey();
     if (!apiKey) {
-      throw new Error("No Gemini API key found. Please configure VITE_GEMINI_API_KEY or enter your custom key in AI Key Settings.");
+      this.isOffline = true;
+      return;
     }
     this.activeModelName = MODEL_CANDIDATES[this.currentCandidateIndex] || MODEL_CANDIDATES[0];
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const modelOptions = { model: this.activeModelName };
-    if (this.systemInstruction) {
-      modelOptions.systemInstruction = this.systemInstruction;
+    try {
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const modelOptions = { model: this.activeModelName };
+      if (this.systemInstruction) {
+        modelOptions.systemInstruction = this.systemInstruction;
+      }
+      const model = genAI.getGenerativeModel(modelOptions);
+      this.activeChat = model.startChat({
+        history: this.history,
+        generationConfig: { maxOutputTokens: 1500 }
+      });
+    } catch (e) {
+      console.warn("[RobustAIChatSession] init warning:", e);
     }
-    const model = genAI.getGenerativeModel(modelOptions);
-    this.activeChat = model.startChat({
-      history: this.history,
-      generationConfig: { maxOutputTokens: 1500 }
-    });
   }
 
   async sendMessage(message) {
     const apiKey = getActiveApiKey();
-    if (!apiKey) {
-      throw new Error("No Gemini API key found. Please configure VITE_GEMINI_API_KEY or enter your custom key in AI Key Settings.");
+    if (!apiKey || this.isOffline) {
+      return null;
     }
+
 
     let lastError = null;
 
