@@ -16,6 +16,76 @@ import { AIKeyModal } from '../../components/AIKeyModal';
 
 const TOTAL_QUESTIONS = 8;
 
+/**
+ * Generates a dynamic, grounded evaluation report derived strictly from the candidate's actual 8 answers.
+ */
+export const generateGroundedFinalFeedback = (userAnswers, company, role, isStressMode) => {
+  const answers = Array.isArray(userAnswers) ? userAnswers : [];
+  const combinedText = answers.join(' ').toLowerCase();
+  const totalWords = answers.reduce((acc, ans) => acc + ans.split(/\s+/).filter(Boolean).length, 0);
+
+  // Technical keyword density scan
+  const techKeywords = [
+    "latency", "throughput", "index", "database", "cache", "redis", "postgres", "sql", 
+    "api", "microservice", "docker", "aws", "architecture", "dsa", "tree", "graph", 
+    "complexity", "o(1)", "o(n)", "scalability", "concurrency", "star", "load balancer",
+    "react", "node", "python", "java", "system design", "monitoring", "git"
+  ];
+  const matchedTech = techKeywords.filter(k => combinedText.includes(k));
+
+  // Quantitative metrics scan (%, ms, $, scale numbers)
+  const metrics = (combinedText.match(/\b\d+(\.\d+)?(%|k|m|x|ms|sec|users|qps)?\b/gi) || []);
+
+  // Compute sub-scores dynamically based on candidate text depth
+  const wordCountScore = Math.min(30, Math.max(10, Math.round(totalWords / 15)));
+  const techDensityScore = Math.min(35, matchedTech.length * 7);
+  const metricDensityScore = Math.min(35, metrics.length * 9);
+
+  const rawScore = lengthScore => Math.min(96, Math.max(35, wordCountScore + techDensityScore + metricDensityScore));
+  const baseScore = rawScore(wordCountScore);
+  const overallScore = isStressMode ? Math.max(30, baseScore - 5) : baseScore;
+
+  const hiringRecommendation = overallScore >= 85 ? "Strong Hire" : overallScore >= 75 ? "Hire" : overallScore >= 60 ? "Leaning Hire" : "No Hire";
+  const estimatedLevel = overallScore >= 85 ? "Senior Engineer (L5+ Ready)" : overallScore >= 75 ? "Mid-Level Engineer (L4 Ready)" : overallScore >= 60 ? "Junior Engineer (L3 Ready)" : "Needs Fundamental Preparation";
+
+  const strongAreas = [];
+  if (matchedTech.length > 0) strongAreas.push(`Technical terms demonstrated: ${matchedTech.slice(0, 4).join(', ')}`);
+  if (metrics.length > 0) strongAreas.push(`Extracted ${metrics.length} quantitative impact metrics in responses`);
+  if (totalWords >= 120) strongAreas.push("Articulate explanations with solid response length");
+  if (strongAreas.length === 0) strongAreas.push("Basic familiarity with software concepts");
+
+  const weakAreas = [];
+  if (metrics.length === 0) weakAreas.push("No quantitative metrics (%, $, ms, scale) provided in experience responses");
+  if (matchedTech.length < 3) weakAreas.push("Low technical architecture and trade-off keyword density");
+  if (totalWords < 80) weakAreas.push("Responses were brief; expand on edge cases and STAR method details");
+
+  const mostImportantTopicsToImprove = [
+    "Quantified Achievement & Impact Presentation (STAR Method)",
+    `Advanced System Design & Scalability Patterns for ${company}`,
+    "Technical Trade-off & Latency Optimization Calculations"
+  ];
+
+  return {
+    overallScore,
+    technicalRating: Math.min(10, Math.max(3, Math.round(overallScore / 10))),
+    communicationRating: Math.min(10, Math.max(4, Math.round((wordCountScore + 40) / 10))),
+    confidenceRating: Math.min(10, Math.max(4, Math.round(overallScore / 10))),
+    hiringRecommendation,
+    strongAreas,
+    weakAreas,
+    mostImportantTopicsToImprove,
+    companyReadiness: `Analyzed candidate responses (${totalWords} words, ${matchedTech.length} tech terms) against ${company}'s bar. Company alignment: ${overallScore}/100.`,
+    roleReadiness: `Evaluated technical bar for ${role} position. Status: ${hiringRecommendation}.`,
+    estimatedInterviewLevel: estimatedLevel,
+    nextLearningPlan: [
+      `Master core ${role} system design trade-offs and latency benchmarks.`,
+      `Incorporate quantitative metrics (%, $, ms, user scale) into all STAR behavioral answers.`,
+      `Practice timed 2-minute technical answer delivery for ${company} interviews.`
+    ],
+    interviewSummary: `Completed all 8 interview questions for ${role} at ${company}. Candidate submitted ${answers.length} answers (${totalWords} words total). Verdict: ${hiringRecommendation}.`
+  };
+};
+
 const MockInterviews = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -31,7 +101,7 @@ const MockInterviews = () => {
   const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
   
   const [messages, setMessages] = useState([]);
-  const [evaluations, setEvaluations] = useState([]); // Stores per-answer evaluations
+  const [userAnswers, setUserAnswers] = useState([]); // Array of candidate's 8 text answers
   const [input, setInput] = useState('');
   const [questionCount, setQuestionCount] = useState(0);
   const [finalFeedback, setFinalFeedback] = useState(null);
@@ -39,8 +109,6 @@ const MockInterviews = () => {
   const messagesEndRef = useRef(null);
   const chatRef = useRef(null);
   const fileInputRef = useRef(null);
-  
-  const activeKey = import.meta.env.VITE_GEMINI_API_KEY || "";
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -48,7 +116,7 @@ const MockInterviews = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, evaluations]);
+  }, [messages]);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -102,17 +170,10 @@ const MockInterviews = () => {
     ];
 
     if (knownList.some(k => cleaned === k || cleaned.includes(k) || k.includes(cleaned))) return true;
-
-    // Reject numbers in unlisted company names (e.g. eryrey5ey5e, test123, 5ey5e)
     if (/\d/.test(cleaned)) return false;
-
-    // Reject consecutive consonants (3+ consonants in a row, e.g. rgh, ghr, rgr, sdf)
     if (/[bcdfghjklmnpqrstvwxyz]{3,}/i.test(cleaned)) return false;
-
-    // Reject repeated characters (3+ identical characters in a row, e.g. aaaa, zzz)
     if (/(.)\1{2,}/.test(cleaned)) return false;
 
-    // Require at least 35% vowels for unlisted multi-letter words
     const vowelCount = (cleaned.match(/[aeiou]/g) || []).length;
     if (vowelCount === 0) return false;
     if (cleaned.length >= 4 && (vowelCount / cleaned.length) < 0.35) return false;
@@ -175,34 +236,30 @@ const MockInterviews = () => {
     
     setPhase('interview');
     setMessages([]);
-    setEvaluations([]);
+    setUserAnswers([]);
     setQuestionCount(1);
 
     try {
       const baseInstructions = `
         You are CrackNest Interview AI.
-        You are a Senior Interviewer from FAANG and Fortune 500 companies (Google, Amazon, Microsoft, Meta, Cognizant, TCS, Accenture, etc.).
-        Your job is to conduct a realistic, high-caliber interview for the ${role} position at ${company}.
+        You are a Senior Technical Interviewer for ${company}.
+        Your job is to conduct a realistic, high-caliber interview for the ${role} position.
 
-        RULES:
+        CRITICAL INTERVIEW FLOW RULES:
         1. Conduct EXACTLY 8 interview questions (Q1 to Q8).
-        2. Question difficulty MUST gradually increase from foundational (Q1) to advanced/system design (Q8).
-        3. Mix question types across the 8 questions:
+        2. Ask ONE question at a time.
+        3. Do NOT evaluate or critique the candidate's answer during the interview. Simply ask the next question or give a short 1-sentence interviewer transition before asking the next question.
+        4. Question difficulty MUST gradually increase from foundational (Q1) to advanced/system design (Q8).
+        5. Mix question types across the 8 questions:
            - Technical concepts
            - Data Structures & Algorithms (DSA)
            - Past Projects & Experience (if resume provided)
            - Behavioral (STAR method)
-           - Situation Based
-           - HR & Culture fit
-           - Company specific questions (${company}'s known interview pattern)
-           (Never ask all HR questions; Never ask all DSA questions).
+           - System Design & Scalability
+           - HR & Culture fit for ${company}.
 
-        4. SHORT / WEAK ANSWER RULE:
-           If the candidate gives a one-word or extremely brief/generic answer (e.g., "yes", "nope", "i don't know", "skip"), you MUST respond:
-           "This answer is too short for a real interview. Explain your reasoning with examples."
-
-        5. AFTER QUESTION 8:
-           Whenever you decide to conclude after Question 8, you MUST output "INTERVIEW_COMPLETE" followed by a complete final evaluation JSON object matching this schema:
+        6. AFTER QUESTION 8:
+           Whenever you conclude after Question 8, output "INTERVIEW_COMPLETE" followed by a complete final evaluation JSON object matching this schema:
            {
              "overallScore": <number 0-100>,
              "technicalRating": <number 0-10>,
@@ -214,26 +271,19 @@ const MockInterviews = () => {
              "mostImportantTopicsToImprove": ["<topic 1>", "<topic 2>"],
              "companyReadiness": "<readiness string>",
              "roleReadiness": "<readiness string>",
-             "estimatedInterviewLevel": "<e.g., L4 / SDE-2 Ready>",
+             "estimatedInterviewLevel": "<level string>",
              "nextLearningPlan": ["<step 1>", "<step 2>"],
              "interviewSummary": "<summary string>"
            }
-
-        Never break character. Be a realistic, professional, and thorough interviewer.
       `;
 
       const stressInstructions = isStressMode ? `
         STRESS INTERVIEW AI MODE IS ACTIVE:
         You are CrackNest Stress Interview AI.
         Behave like an impatient Senior Engineering Manager at a top tech firm.
-        Your goal is to simulate a realistic, high-pressure interview.
-        - Never insult the candidate. Be professional but strict.
-        - Challenge weak or vague answers immediately.
-        - Question assumptions. Ask "Why?", "How?", "Can you prove that?", "What if this system fails?".
-        - Ask 8 difficult, high-pressure questions.
+        Be professional but strict. Question assumptions and ask 8 difficult questions.
       ` : '';
 
-      const activeKey = getActiveApiKey();
       if (activeKey) {
         const chatSession = new RobustAIChatSession({
           systemInstruction: baseInstructions + stressInstructions
@@ -245,9 +295,9 @@ const MockInterviews = () => {
         if (fileContent) {
           resumeText = fileContent.extractedText || (typeof fileContent === 'string' ? fileContent : "");
         }
-        let prompt = `Hello, I am ${user?.name || 'the candidate'}. I am ready to begin my 8-question mock interview for the ${role} position at ${company}. Please ask me Question 1 tailored specifically to ${company}'s interview process and my target role.`;
+        let prompt = `Hello, I am ${user?.name || 'the candidate'}. I am ready to begin my 8-question mock interview for the ${role} position at ${company}. Please ask Question 1 tailored to ${company} and my target role.`;
         if (resumeText && resumeText.trim()) {
-          prompt = `Candidate Resume Content:\n${resumeText.trim()}\n\nCRITICAL: You MUST ask questions directly referencing the candidate's actual projects, skills, and experience from their resume above whenever relevant.\n\n${prompt}`;
+          prompt = `Candidate Resume Content:\n${resumeText.trim()}\n\n${prompt}`;
         }
         
         const text = await chatSession.sendMessage(prompt);
@@ -262,13 +312,12 @@ const MockInterviews = () => {
       setIsLoading(false);
     }
 
-    // Smooth fallback to Smart Recruiter Interview Mode without annoying toast errors
+    // Clean Interview Mode initial message
     setMessages([{ 
       role: 'model', 
-      text: `Welcome to your mock interview for the ${role} position at ${company}. Let's start with Question 1:\n"Please introduce yourself and highlight your core technical skills and past projects relevant to ${company}."` 
+      text: `Welcome to your mock interview for the ${role} position at ${company}.\n\nQuestion 1:\n"Please introduce yourself and highlight your core technical skills and past projects relevant to ${company}."` 
     }]);
   };
-
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -282,13 +331,15 @@ const MockInterviews = () => {
     const isShortAnswer = words.length <= 3 && ["nope", "yes", "no", "skip", "pass", "ok", "fine", "idk"].includes(words[0]?.toLowerCase());
 
     setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
+    const updatedAnswers = [...userAnswers, userMessage];
+    setUserAnswers(updatedAnswers);
     setIsLoading(true);
 
     if (isShortAnswer) {
       setTimeout(() => {
         setMessages(prev => [...prev, { 
           role: 'model', 
-          text: `⚠️ This answer is too short for a real interview. Explain your reasoning with examples.\n\nLet's try again: Can you provide a detailed explanation or example for Question ${questionCount}?` 
+          text: `⚠️ This answer is too short for a real interview. Explain your reasoning with examples.\n\nLet me ask again: Can you provide a detailed explanation or example for Question ${questionCount}?` 
         }]);
         setIsLoading(false);
       }, 500);
@@ -296,171 +347,109 @@ const MockInterviews = () => {
     }
 
     const activeKey = getActiveApiKey();
+
     if (!activeKey || !chatRef.current) {
       setTimeout(() => {
         const nextCount = questionCount + 1;
-        
-        // Generate per-answer evaluation (with Stress Mode scores if active)
-        const mockEval = isStressMode ? {
-          qNum: questionCount,
-          scores: {
-            confidence: 7.5,
-            communication: 8,
-            technicalAccuracy: 8,
-            problemSolving: 7.5,
-            decisionMaking: 8,
-            stressHandling: 8.5
-          },
-          whatWasGood: "Maintained composure under pressure and defended system design decisions.",
-          whatWasMissing: "Could provide concrete load metrics when assumptions were challenged.",
-          idealAnswer: "A senior manager expects clear trade-off analysis, SLA commitments, and fallback strategies.",
-          improvedVersion: `"${userMessage} Under load, I would implement circuit breakers and fallback to cached data."`
-        } : {
-          qNum: questionCount,
-          scores: {
-            communication: 7.5,
-            technical: 8,
-            confidence: 7.5,
-            correctness: 8,
-            answerQuality: 7.8
-          },
-          whatWasGood: "Demonstrated clear understanding of fundamental engineering concepts.",
-          whatWasMissing: "Could add explicit quantitative metrics and edge-case error handling.",
-          idealAnswer: "A senior candidate would outline architectural trade-offs, state time/space complexity, and describe automated testing strategies.",
-          improvedVersion: `"${userMessage} In addition, I implemented error boundaries and monitored API latency using logging tools."`
-        };
-
-        setEvaluations(prev => [...prev, mockEval]);
         setQuestionCount(nextCount);
 
         if (nextCount > TOTAL_QUESTIONS) {
+          // Finished all 8 questions -> Generate Grounded Evaluation Report
           setMessages(prev => [...prev, { 
             role: 'model', 
-            text: `We have completed all ${TOTAL_QUESTIONS} high-pressure interview questions for ${role} at ${company}.\n\nGenerating your Stress & Technical Evaluation Report...` 
+            text: `Thank you. That concludes all ${TOTAL_QUESTIONS} interview questions for the ${role} position at ${company}.\n\nGenerating your Official Recruiter Candidate Evaluation Report...` 
           }]);
-          setFinalFeedback(isStressMode ? {
-            overallScore: 84,
-            stressScore: 86,
-            pressureHandlingScore: 8.5,
-            communicationUnderPressure: 8.0,
-            technicalAbility: 8.5,
-            decisionMaking: 8.0,
-            hiringProbability: "High (75-85%)",
-            hiringRecommendation: "Hire",
-            biggestStrength: "Composure and technical clarity under direct manager interrogation",
-            biggestWeakness: "Slight hesitation when pushed on failover scenarios and edge-case constraints",
-            strongAreas: ["High-pressure problem solving", "System Architecture Trade-offs"],
-            weakAreas: ["Circuit breaker failover specs", "Quantified load benchmarks"],
-            mostImportantTopicsToImprove: ["Distributed Resilience Patterns", "SLA & Rate-limiting Calculations"],
-            companyReadiness: `Demonstrates strong resilience for ${company}'s high-bar technical environment.`,
-            roleReadiness: `Prepared to handle senior engineering responsibilities for ${role}.`,
-            estimatedInterviewLevel: "L4 / Senior Engineer Ready",
-            actionPlan: [
-              "Review high-concurrency failover patterns (Circuit Breakers, Bulkheads).",
-              "Practice defending architectural trade-offs without defensive language.",
-              "Prepare quantitative metrics for all past project achievements."
-            ],
-            nextLearningPlan: [
-              "Master Distributed System Resilience Patterns.",
-              "Practice mock interrogations under timed constraints."
-            ],
-            interviewSummary: `Completed an intense 8-question Stress Interview with a Senior Engineering Manager persona for ${role} at ${company}. Candidate showed strong poise and solid technical grounding.`
-          } : {
-            overallScore: 82,
-            technicalRating: 8.0,
-            communicationRating: 8.5,
-            confidenceRating: 8.0,
-            hiringRecommendation: "Hire",
-            strongAreas: ["Core System Architecture", "Data Structures Fundamentals", "Communication Clarity"],
-            weakAreas: ["Edge-case error handling under load", "Specific database index optimization"],
-            mostImportantTopicsToImprove: ["Distributed Systems Caching", "STAR Method Behavioral Stories"],
-            companyReadiness: `High alignment with ${company}'s technical bar and engineering culture.`,
-            roleReadiness: `Demonstrates solid readiness for ${role} responsibilities.`,
-            estimatedInterviewLevel: "L4 / Mid-Level Engineer Ready",
-            nextLearningPlan: [
-              "Practice 15 medium-to-hard Leetcode Graph & Dynamic Programming problems.",
-              "Review System Design patterns: Load Balancing, Caching, Sharding.",
-              "Refine 3 STAR behavioral stories focusing on conflict resolution and leadership."
-            ],
-            interviewSummary: `Completed an 8-question structured interview for ${role} at ${company}. Candidate showed strong technical articulation and solid problem-solving fundamentals.`
-          });
-          setTimeout(() => setPhase('results'), 3000);
+
+          const finalReport = generateGroundedFinalFeedback(updatedAnswers, company, role, isStressMode);
+          setFinalFeedback(finalReport);
+
+          api.post('/interviews/save', {
+            company: company,
+            role: role,
+            rating: finalReport.overallScore ? finalReport.overallScore / 10 : 8,
+            feedback: finalReport.interviewSummary,
+            improvements: finalReport.mostImportantTopicsToImprove,
+            weakest_area: finalReport.weakAreas?.[0] || "General"
+          }).catch(err => console.error("Failed to save interview", err));
+
+          setTimeout(() => setPhase('results'), 2500);
         } else {
+          // Next Question cleanly without interrupting evaluation cards
           const sampleQuestions = [
-            `Question 2 (DSA & Optimization): "How would you optimize a search operation over a dataset of 10 million records with low latency constraints?"`,
-            `Question 3 (Projects & Experience): "Tell me about a technical project you built recently. What was the hardest architectural decision you made?"`,
-            `Question 4 (System Design): "How would you design a scalable notification system for ${company} that sends push, SMS, and email alerts without dropping messages?"`,
-            `Question 5 (Behavioral - STAR): "Describe a situation where a production bug occurred right before a deadline. How did you handle it and communicate with stakeholders?"`,
-            `Question 6 (Technical Deep Dive): "Explain the difference between optimistic and pessimistic locking in databases. When would you use each at ${company}?"`,
-            `Question 7 (Situation Based): "If your tech lead insists on a feature design that you believe will cause scalability issues, how do you handle it?"`,
-            `Question 8 (Advanced HR & Culture Fit): "Why ${company} specifically? What engineering principles or products at ${company} excite you most?"`
+            `Question 2 (Technical Concepts & Optimization): "How would you optimize a search operation over a dataset of 10 million records with low latency constraints at ${company}?"`,
+            `Question 3 (Projects & Past Experience): "Tell me about a complex technical project you built recently. What was the hardest architectural decision you made and why?"`,
+            `Question 4 (System Design & Scalability): "How would you design a high-throughput, fault-tolerant notification system for ${company} handling millions of events daily?"`,
+            `Question 5 (Behavioral - STAR Method): "Describe a situation where a critical production bug occurred right before a major launch. How did you diagnose, resolve, and communicate it?"`,
+            `Question 6 (Technical Deep Dive): "Explain the difference between optimistic and pessimistic locking in databases. In what scenario would you choose optimistic locking at ${company}?"`,
+            `Question 7 (Situation & Leadership): "If a senior team member proposes a feature architecture that you believe creates scalability bottlenecks, how do you approach the discussion?"`,
+            `Question 8 (Company Culture & Vision): "Why ${company} specifically for your next career step? What engineering principles or products at ${company} align with your background?"`
           ];
+
           setMessages(prev => [...prev, { 
             role: 'model', 
             text: sampleQuestions[(nextCount - 2) % sampleQuestions.length] 
           }]);
         }
         setIsLoading(false);
-      }, 900);
+      }, 800);
       return;
     }
 
+    // AI Interactive Mode with Gemini
     try {
       const chat = chatRef.current;
       const result = await chat.sendMessage(userMessage);
       let text = result.response.text();
 
-      if (text.includes("INTERVIEW_COMPLETE")) {
+      const nextCount = questionCount + 1;
+      setQuestionCount(nextCount);
+
+      if (text.includes("INTERVIEW_COMPLETE") || nextCount > TOTAL_QUESTIONS) {
         const parts = text.split("INTERVIEW_COMPLETE");
         const chatBefore = parts[0].trim();
         if (chatBefore) {
           setMessages(prev => [...prev, { role: 'model', text: chatBefore }]);
         }
-        
+
+        let feedbackData = null;
         try {
-          const jsonStr = parts[1].replace(/```json/g, '').replace(/```/g, '').trim();
-          const feedbackData = JSON.parse(jsonStr);
-          setFinalFeedback(feedbackData);
-          
-          api.post('/interviews/save', {
-            company: company,
-            role: role,
-            rating: feedbackData.overallScore ? feedbackData.overallScore / 10 : 8,
-            feedback: feedbackData.interviewSummary || "Interview completed successfully.",
-            improvements: feedbackData.mostImportantTopicsToImprove || [],
-            weakest_area: feedbackData.weakAreas?.[0] || "General"
-          }).catch(err => console.error("Failed to save interview", err));
-          
-        } catch(e) {
-          console.error("Failed to parse JSON feedback", e);
-          setFinalFeedback({
-            overallScore: 80,
-            technicalRating: 8.0,
-            communicationRating: 8.0,
-            confidenceRating: 8.0,
-            hiringRecommendation: "Hire",
-            strongAreas: ["Technical Knowledge", "Problem Solving"],
-            weakAreas: ["Edge case coverage"],
-            mostImportantTopicsToImprove: ["System Design Trade-offs"],
-            companyReadiness: "Good alignment",
-            roleReadiness: "Role ready",
-            estimatedInterviewLevel: "L4 Ready",
-            nextLearningPlan: ["Review system design principles"],
-            interviewSummary: "Completed 8-question mock interview."
-          });
+          if (parts[1]) {
+            const jsonStr = parts[1].replace(/```json/g, '').replace(/```/g, '').trim();
+            feedbackData = JSON.parse(jsonStr);
+          }
+        } catch (e) {
+          console.warn("Parsing AI JSON feedback failed, falling back to grounded evaluation:", e);
         }
-        setTimeout(() => setPhase('results'), 3000);
+
+        if (!feedbackData) {
+          feedbackData = generateGroundedFinalFeedback(updatedAnswers, company, role, isStressMode);
+        }
+
+        setFinalFeedback(feedbackData);
+
+        api.post('/interviews/save', {
+          company: company,
+          role: role,
+          rating: feedbackData.overallScore ? feedbackData.overallScore / 10 : 8,
+          feedback: feedbackData.interviewSummary,
+          improvements: feedbackData.mostImportantTopicsToImprove || [],
+          weakest_area: feedbackData.weakAreas?.[0] || "General"
+        }).catch(err => console.error("Failed to save interview", err));
+
+        setTimeout(() => setPhase('results'), 2500);
       } else {
         setMessages(prev => [...prev, { role: 'model', text }]);
-        setQuestionCount(prev => Math.min(prev + 1, TOTAL_QUESTIONS));
       }
     } catch (error) {
-      console.error(error);
-      setMessages(prev => [...prev, { 
-        role: 'model', 
-        text: `Understood your response. Let's move to Question ${questionCount + 1}: Could you describe how you handle database indexing and query optimization in high-traffic applications?` 
-      }]);
-      setQuestionCount(prev => Math.min(prev + 1, TOTAL_QUESTIONS));
+      console.error("[MockInterviews] AI send message error:", error);
+      // Fallback transition to next question
+      const nextCount = questionCount + 1;
+      setQuestionCount(nextCount);
+      if (nextCount > TOTAL_QUESTIONS) {
+        const finalReport = generateGroundedFinalFeedback(updatedAnswers, company, role, isStressMode);
+        setFinalFeedback(finalReport);
+        setTimeout(() => setPhase('results'), 2000);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -468,75 +457,72 @@ const MockInterviews = () => {
 
   const restart = () => {
     setPhase('setup');
-    setCompany('');
-    setRole('');
     setMessages([]);
-    setEvaluations([]);
+    setUserAnswers([]);
     setQuestionCount(0);
     setFinalFeedback(null);
+    chatRef.current = null;
   };
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!user) return <Navigate to="/login" replace />;
 
   return (
-    <div className="w-full h-screen flex flex-col relative overflow-hidden bg-zinc-950 pt-24 px-4 md:px-8 pb-6 text-zinc-100">
-      <GLSLHills speed={0.8} />
+    <div className="w-full h-screen bg-zinc-950 flex flex-col pt-16 text-zinc-100 relative overflow-hidden font-sans">
       
-      {/* Header Bar */}
-      <div className="mb-4 relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800/80 pb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            {isStressMode && <span className="px-2.5 py-0.5 bg-red-500/20 text-red-400 text-xs font-bold rounded-full border border-red-500/30">Stress Mode</span>}
-          </div>
-          <div className="flex items-center gap-3 mt-1">
-            <h1 className="text-2xl md:text-3xl font-serif text-white tracking-tight">CrackNest AI Mock Interview</h1>
-          </div>
-        </div>
+      <div className="absolute inset-0 z-0 opacity-40">
+        <GLSLHills />
+      </div>
 
+      {/* TOP HEADER */}
+      <div className="h-16 border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md px-6 flex items-center justify-between relative z-10">
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsKeyModalOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-xl border border-zinc-800 text-xs font-medium transition-all cursor-pointer"
-          >
-            <Settings size={15} className="text-cyan-400" />
-            <span>AI Key Settings</span>
-          </button>
-
-          {phase === 'interview' && (
-            <div className="flex items-center gap-4 bg-zinc-900/90 px-5 py-2.5 rounded-xl border border-zinc-800">
-              <div>
-                <span className="text-xs text-zinc-500 font-bold block">TARGET</span>
-                <span className="text-xs font-bold text-white">{company} • {role}</span>
-              </div>
-              <div className="h-8 w-px bg-zinc-800"></div>
-              <div className="text-right">
-                <span className="text-xs text-zinc-500 font-bold block">PROGRESS</span>
-                <span className="text-sm font-bold text-[#33bb9a]">Question {questionCount} / {TOTAL_QUESTIONS}</span>
-              </div>
-            </div>
+          <h1 className="text-xl font-serif text-white tracking-tight">CrackNest AI Mock Interview</h1>
+          {isStressMode && (
+            <span className="px-2.5 py-0.5 bg-red-500/10 text-red-400 text-[10px] font-bold uppercase rounded-full border border-red-500/20 flex items-center gap-1">
+              <ShieldAlert size={12} /> Stress Mode
+            </span>
           )}
         </div>
+
+        {phase === 'interview' && (
+          <div className="flex items-center gap-6">
+            <div className="text-right">
+              <span className="text-[10px] text-zinc-400 font-bold uppercase block">Target</span>
+              <span className="text-xs font-bold text-white capitalize">{company} • {role}</span>
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] text-zinc-400 font-bold uppercase block">Progress</span>
+              <span className="text-xs font-bold text-[#33bb9a]">Question {Math.min(questionCount, TOTAL_QUESTIONS)} / {TOTAL_QUESTIONS}</span>
+            </div>
+          </div>
+        )}
+
+        <button
+          onClick={() => setIsKeyModalOpen(true)}
+          className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-lg border border-zinc-800 text-xs font-medium transition-all cursor-pointer"
+        >
+          <Settings size={14} className="text-cyan-400" />
+          <span>AI Key Settings</span>
+        </button>
       </div>
 
       <AIKeyModal isOpen={isKeyModalOpen} onClose={() => setIsKeyModalOpen(false)} />
 
-      {/* PHASE 1: SETUP */}
+      {/* PHASE 1: SETUP MODAL */}
       {phase === 'setup' && (
-        <div className="flex-1 relative z-10 overflow-y-auto custom-scrollbar">
-          <div className="min-h-full flex items-center justify-center py-6">
+        <div className="flex-1 flex items-center justify-center p-4 relative z-10">
+          <div className="w-full max-w-md">
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="w-full max-w-xl bg-zinc-900/80 backdrop-blur-xl border border-zinc-800 rounded-2xl p-8 shadow-2xl space-y-6"
+              className="bg-zinc-900/90 backdrop-blur-xl border border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-6"
             >
               <div className="text-center">
-                <h2 className="text-2xl font-bold text-white">Interview Configuration</h2>
-                <p className="text-xs text-zinc-400 mt-1">Simulate an authentic 8-question technical & behavioral interview.</p>
+                <h2 className="text-2xl font-serif text-white">Setup Mock Interview</h2>
+                <p className="text-xs text-zinc-400 mt-1">Configure target company & role for structured 8-question evaluation</p>
               </div>
 
-              <div className="space-y-5">
+              <div className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">Target Company *</label>
                   <div className="relative">
@@ -544,14 +530,16 @@ const MockInterviews = () => {
                     <input
                       type="text"
                       value={company}
-                      onChange={(e) => setCompany(e.target.value)}
-                      placeholder="Enter company"
+                      onChange={(e) => {
+                        setCompany(e.target.value);
+                        setNotFoundCompany(null);
+                      }}
+                      placeholder="e.g. Google, Microsoft, Cognizant, TCS"
                       className="w-full pl-11 pr-4 py-3.5 bg-zinc-950 border border-zinc-800 rounded-xl text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-[#00B386]"
                     />
                   </div>
                 </div>
 
-                {/* NOT FOUND WARNING */}
                 {notFoundCompany && (
                   <div className="bg-red-950/30 border border-red-900/50 p-4 rounded-xl text-center">
                     <span className="text-xs font-bold text-red-400 block">Company Not Found. Please enter a valid company name.</span>
@@ -566,7 +554,7 @@ const MockInterviews = () => {
                       type="text"
                       value={role}
                       onChange={(e) => setRole(e.target.value)}
-                      placeholder="Enter job role"
+                      placeholder="e.g. Software Engineer, Backend Dev"
                       className="w-full pl-11 pr-4 py-3.5 bg-zinc-950 border border-zinc-800 rounded-xl text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-[#00B386]"
                     />
                   </div>
@@ -609,7 +597,7 @@ const MockInterviews = () => {
                       <ShieldAlert size={16} />
                       FAANG Stress Interview Mode
                     </h4>
-                    <p className="text-[11px] text-zinc-400 mt-0.5">Demanding interviewer persona with skeptical follow-ups and strict constraints.</p>
+                    <p className="text-[11px] text-zinc-400 mt-0.5">Skeptical senior manager persona with strict followup questions.</p>
                   </div>
                   <button 
                     onClick={() => setIsStressMode(!isStressMode)}
@@ -633,7 +621,7 @@ const MockInterviews = () => {
         </div>
       )}
 
-      {/* PHASE 2: LIVE INTERVIEW CHAT */}
+      {/* PHASE 2: LIVE INTERVIEW CHAT (CLEAN REALISTIC FLOW WITHOUT PER-QUESTION CARDS) */}
       {phase === 'interview' && (
         <div className="flex-1 flex flex-col border border-zinc-800 rounded-2xl bg-zinc-900/80 backdrop-blur-xl overflow-hidden shadow-2xl relative z-10">
           
@@ -665,105 +653,6 @@ const MockInterviews = () => {
               </motion.div>
             ))}
 
-            {/* Render Per-Answer Feedback Cards */}
-            {evaluations.map((ev, index) => (
-              <motion.div 
-                key={`eval-${index}`}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="max-w-[85%] mx-auto bg-zinc-950/90 border border-zinc-800 rounded-2xl p-5 shadow-xl space-y-4 my-4"
-              >
-                <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-                  <div className="flex items-center gap-2">
-                    <Award size={18} className="text-[#33bb9a]" />
-                    <span className="text-xs font-bold text-white uppercase">Q{ev.qNum} Response Evaluation</span>
-                  </div>
-                  <span className="text-[11px] text-zinc-400 font-mono">Answer Quality: {ev.scores.answerQuality}/10</span>
-                </div>
-
-                {/* Scores Bar */}
-                <div className={`grid ${isStressMode ? 'grid-cols-6' : 'grid-cols-5'} gap-2 text-center bg-zinc-900/60 p-2.5 rounded-xl border border-zinc-800/80`}>
-                  {isStressMode ? (
-                    <>
-                      <div>
-                        <span className="text-[9px] text-zinc-400 uppercase block">Conf.</span>
-                        <span className="text-xs font-bold text-white">{ev.scores.confidence}/10</span>
-                      </div>
-                      <div>
-                        <span className="text-[9px] text-zinc-400 uppercase block">Comm.</span>
-                        <span className="text-xs font-bold text-white">{ev.scores.communication}/10</span>
-                      </div>
-                      <div>
-                        <span className="text-[9px] text-zinc-400 uppercase block">Tech</span>
-                        <span className="text-xs font-bold text-white">{ev.scores.technicalAccuracy}/10</span>
-                      </div>
-                      <div>
-                        <span className="text-[9px] text-zinc-400 uppercase block">ProbSolv</span>
-                        <span className="text-xs font-bold text-white">{ev.scores.problemSolving}/10</span>
-                      </div>
-                      <div>
-                        <span className="text-[9px] text-zinc-400 uppercase block">Decision</span>
-                        <span className="text-xs font-bold text-white">{ev.scores.decisionMaking}/10</span>
-                      </div>
-                      <div>
-                        <span className="text-[9px] text-zinc-400 uppercase block">Stress</span>
-                        <span className="text-xs font-bold text-red-400">{ev.scores.stressHandling}/10</span>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div>
-                        <span className="text-[10px] text-zinc-400 uppercase block">Comm.</span>
-                        <span className="text-xs font-bold text-white">{ev.scores.communication}/10</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-zinc-400 uppercase block">Tech</span>
-                        <span className="text-xs font-bold text-white">{ev.scores.technical}/10</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-zinc-400 uppercase block">Conf.</span>
-                        <span className="text-xs font-bold text-white">{ev.scores.confidence}/10</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-zinc-400 uppercase block">Correct</span>
-                        <span className="text-xs font-bold text-white">{ev.scores.correctness}/10</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-zinc-400 uppercase block">Quality</span>
-                        <span className="text-xs font-bold text-[#33bb9a]">{ev.scores.answerQuality}/10</span>
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div className="bg-green-950/20 border border-green-900/30 p-3 rounded-xl">
-                    <span className="font-bold text-green-400 block mb-1">What Was Good</span>
-                    <p className="text-zinc-300">{ev.whatWasGood}</p>
-                  </div>
-                  <div className="bg-red-950/20 border border-red-900/30 p-3 rounded-xl">
-                    <span className="font-bold text-red-400 block mb-1">What Was Missing</span>
-                    <p className="text-zinc-300">{ev.whatWasMissing}</p>
-                  </div>
-                </div>
-
-                <div className="space-y-2 text-xs">
-                  <div className="bg-zinc-900/80 border border-zinc-800 p-3 rounded-xl">
-                    <span className="font-bold text-blue-400 flex items-center gap-1.5 mb-1">
-                      <Lightbulb size={14} /> Senior Engineer Ideal Answer:
-                    </span>
-                    <p className="text-zinc-300 italic">{ev.idealAnswer}</p>
-                  </div>
-                  <div className="bg-zinc-900/80 border border-zinc-800 p-3 rounded-xl">
-                    <span className="font-bold text-purple-400 flex items-center gap-1.5 mb-1">
-                      <TrendingUp size={14} /> Improved Version of Your Answer:
-                    </span>
-                    <p className="text-zinc-300">{ev.improvedVersion}</p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-
             {isLoading && (
               <div className="flex gap-3 max-w-[80%] mr-auto">
                 <div className="w-9 h-9 rounded-full bg-zinc-800 flex items-center justify-center border border-zinc-700 text-zinc-400">
@@ -771,7 +660,7 @@ const MockInterviews = () => {
                 </div>
                 <div className="p-4 rounded-2xl bg-zinc-950 border border-zinc-800 text-zinc-400 flex items-center gap-2 text-xs">
                   <Loader2 size={16} className="animate-spin text-[#33bb9a]" />
-                  <span>Interviewer is evaluating response & framing Question {questionCount}...</span>
+                  <span>Interviewer is evaluating response & preparing Question {Math.min(questionCount, TOTAL_QUESTIONS)}...</span>
                 </div>
               </div>
             )}
@@ -801,7 +690,7 @@ const MockInterviews = () => {
         </div>
       )}
 
-      {/* PHASE 3: FINAL RESULTS */}
+      {/* PHASE 3: FINAL RESULTS (GROUNDED & GENUINE COMPREHENSIVE EVALUATION) */}
       {phase === 'results' && (
         <div className="flex-1 relative z-10 overflow-y-auto custom-scrollbar">
           <div className="min-h-full flex items-center justify-center py-6">
@@ -814,8 +703,8 @@ const MockInterviews = () => {
                 <div className="w-16 h-16 bg-[#00B386]/20 text-[#33bb9a] rounded-full flex items-center justify-center mx-auto mb-3 border border-[#00B386]/30">
                   <CheckCircle size={32} />
                 </div>
-                <h2 className="text-3xl font-serif text-white">8-Question Interview Completed</h2>
-                <p className="text-xs text-zinc-400 mt-1">Official FAANG / Fortune 500 Candidate Evaluation Report</p>
+                <h2 className="text-3xl font-serif text-white">8-Question Mock Interview Completed</h2>
+                <p className="text-xs text-zinc-400 mt-1">Official Candidate Evaluation Report for {company} ({role})</p>
               </div>
 
               {finalFeedback && (
@@ -832,7 +721,7 @@ const MockInterviews = () => {
                       <span className="text-[10px] text-zinc-500 font-bold block uppercase">Recommendation</span>
                     </div>
                     <div className="text-center md:border-r border-zinc-800 pr-2">
-                      <span className="text-2xl font-bold text-white">{finalFeedback.estimatedInterviewLevel || "L4 Ready"}</span>
+                      <span className="text-xl font-bold text-white">{finalFeedback.estimatedInterviewLevel || "L4 Ready"}</span>
                       <span className="text-[10px] text-zinc-500 font-bold block uppercase">Estimated Level</span>
                     </div>
                     <div className="text-center">
@@ -844,7 +733,7 @@ const MockInterviews = () => {
                   {/* Strong & Weak Areas */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="bg-green-950/20 border border-green-900/30 p-5 rounded-xl">
-                      <h4 className="text-xs font-bold text-green-400 uppercase tracking-wider mb-2">Strong Demonstrated Areas</h4>
+                      <h4 className="text-xs font-bold text-green-400 uppercase tracking-wider mb-2">Grounded Demonstrated Strengths</h4>
                       <ul className="space-y-1 text-xs text-zinc-300">
                         {(finalFeedback.strongAreas || []).map((area, idx) => (
                           <li key={idx}>✓ {area}</li>
@@ -877,7 +766,7 @@ const MockInterviews = () => {
                   {/* Next Learning Plan */}
                   <div className="bg-zinc-950 p-6 rounded-2xl border border-zinc-800 text-xs space-y-3">
                     <h4 className="font-bold text-white uppercase text-xs flex items-center gap-2">
-                      <BookOpen size={16} className="text-[#33bb9a]" /> Recommended Next Learning Plan
+                      <BookOpen size={16} className="text-[#33bb9a]" /> Recommended Next Action Plan
                     </h4>
                     <ul className="space-y-1.5 text-zinc-300">
                       {(finalFeedback.nextLearningPlan || []).map((step, idx) => (
@@ -887,6 +776,14 @@ const MockInterviews = () => {
                       ))}
                     </ul>
                   </div>
+
+                  {/* Recruiter Summary Verdict */}
+                  {finalFeedback.interviewSummary && (
+                    <div className="bg-[#00B386]/10 border border-[#00B386]/30 p-5 rounded-2xl text-xs space-y-1">
+                      <span className="text-[#33bb9a] font-bold uppercase tracking-wider block">Official Senior Recruiter Summary:</span>
+                      <p className="text-white leading-relaxed text-sm font-medium">{finalFeedback.interviewSummary}</p>
+                    </div>
+                  )}
 
                 </div>
               )}
