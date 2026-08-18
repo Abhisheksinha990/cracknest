@@ -80,9 +80,12 @@ const Navbar = () => {
                     {link.name}
                   </span>
 
-                  {/* Active Green Glowing Dot */}
+                  {/* Active Red Glowing Live Dot */}
                   {isActive && (
-                    <span className="relative z-10 w-1.5 h-1.5 rounded-full bg-[#00B386] shadow-[0_0_8px_#00B386] animate-pulse" />
+                    <span className="relative z-10 flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500 shadow-[0_0_8px_#EF4444]"></span>
+                    </span>
                   )}
                 </Link>
               );

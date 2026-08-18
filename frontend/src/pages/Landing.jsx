@@ -143,15 +143,18 @@ const Landing = () => {
       <DotGlobeHero rotationSpeed={0.004} globeRadius={1.2}>
         <div className="pt-24 pb-16 px-4 flex flex-col items-center justify-center text-center max-w-4xl mx-auto z-10">
           
-          {/* Badge */}
+          {/* Badge with Red Pulsing Live Dot */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#00B386]/10 border border-[#00B386]/30 text-[#00B386] font-semibold text-xs uppercase tracking-widest mb-6 shadow-xl"
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 font-semibold text-xs uppercase tracking-widest mb-6 shadow-xl backdrop-blur-md"
           >
-            <span className="w-2 h-2 rounded-full bg-[#00B386] animate-ping"></span>
-            Career Preparation Platform
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500 shadow-[0_0_8px_#EF4444]"></span>
+            </span>
+            <span>Career Preparation Platform</span>
           </motion.div>
 
           {/* Heading matching design prompt: Bold white sans-serif Welcome Back, & Green handwritten SVG username */}
