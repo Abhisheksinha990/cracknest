@@ -496,17 +496,7 @@ const MockInterviews = () => {
             </div>
           </div>
         )}
-
-        <button
-          onClick={() => setIsKeyModalOpen(true)}
-          className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-lg border border-zinc-800 text-xs font-medium transition-all cursor-pointer"
-        >
-          <Settings size={14} className="text-cyan-400" />
-          <span>AI Key Settings</span>
-        </button>
       </div>
-
-      <AIKeyModal isOpen={isKeyModalOpen} onClose={() => setIsKeyModalOpen(false)} />
 
       {/* PHASE 1: SETUP MODAL */}
       {phase === 'setup' && (

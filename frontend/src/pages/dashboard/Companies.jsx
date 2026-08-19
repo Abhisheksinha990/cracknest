@@ -32,7 +32,7 @@ const VERIFIED_HIRING_DATABASE = {
 
 const Companies = () => {
   const [companyInput, setCompanyInput] = useState('');
-  const [roleInput, setRoleInput] = useState('Software Engineer');
+  const [roleInput, setRoleInput] = useState('');
   
   const [isValidating, setIsValidating] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -289,7 +289,7 @@ const Companies = () => {
                   type="text"
                   value={roleInput}
                   onChange={(e) => setRoleInput(e.target.value)}
-                  placeholder="Enter Job Role"
+                  placeholder="e.g. Software Engineer, Frontend Dev, Data Scientist..."
                   className="w-full pl-12 pr-4 py-4 bg-zinc-950 border border-zinc-800 rounded-xl text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-[#00B386] transition-colors"
                 />
               </div>
