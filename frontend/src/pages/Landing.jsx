@@ -139,14 +139,27 @@ const Landing = () => {
   const displayName = user?.name || "Public Guest User";
   
   return (
-    <AnimatedShaderBackground>
-      <div className="landing-page flex flex-col min-h-screen w-full relative">
-        <BackgroundPaths>
-          
-          {/* Hero Section with Interactive 3D DotGlobeHero Background */}
-          <DotGlobeHero rotationSpeed={0.004} globeRadius={1.2} className="bg-transparent">
-            <div className="pt-24 pb-16 px-4 flex flex-col items-center justify-center text-center max-w-4xl mx-auto z-10">
-          
+    <div className="landing-page flex flex-col min-h-screen w-full relative bg-zinc-950 overflow-x-hidden">
+      
+      {/* Hero-1 Top Gradient Background */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80 min-h-screen pointer-events-none"
+      >
+        <div
+          style={{
+            clipPath:
+              'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)',
+            background: 'linear-gradient(to top right, #00B386, #33bb9a)'
+          }}
+          className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] max-w-none -translate-x-1/2 rotate-[30deg] opacity-25 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem] min-h-screen"
+        />
+      </div>
+
+      {/* Hero Section with Interactive 3D DotGlobeHero Background */}
+      <DotGlobeHero rotationSpeed={0.004} globeRadius={1.2} className="bg-transparent border-b border-white/5">
+        <div className="pt-24 pb-16 px-4 flex flex-col items-center justify-center text-center max-w-4xl mx-auto z-10">
+      
           {/* Badge with Red Pulsing Live Dot */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
@@ -161,7 +174,7 @@ const Landing = () => {
             <span>Career Preparation Platform</span>
           </motion.div>
 
-          {/* Heading matching design prompt: Bold white sans-serif Welcome Back, & Green handwritten SVG username */}
+          {/* Heading matching design prompt */}
           <motion.div
             initial={{ opacity: 0.5, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -220,63 +233,94 @@ const Landing = () => {
       </DotGlobeHero>
 
       {/* Features Section */}
-      <section className="container mx-auto px-4 py-24 relative z-10 border-t border-white/5 bg-zinc-950">
+      <section className="container mx-auto px-4 py-24 relative z-10 bg-transparent">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">Everything You Need</h2>
+          <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 tracking-tight">Everything You Need</h2>
           <p className="text-zinc-400 text-lg max-w-2xl mx-auto">A comprehensive toolkit designed to help you ace your interviews and land offers.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-          <div className="bg-[#111] border border-white/5 rounded-2xl p-8 hover:border-[#00B386]/30 transition-all duration-300 group flex flex-col relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-[#00B386]/5 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-150 duration-500"></div>
-            <div className="w-14 h-14 rounded-xl flex items-center justify-center text-zinc-400 group-hover:text-[#33bb9a] bg-white/5 mb-8 group-hover:bg-[#00B386]/10 transition-colors">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          
+          <motion.div 
+            whileHover={{ y: -14, scale: 1.03 }}
+            transition={{ type: "spring", stiffness: 350, damping: 22 }}
+            className="bg-zinc-900/60 border border-white/15 rounded-3xl p-8 hover:border-[#00B386] hover:bg-zinc-900/90 hover:shadow-[0_25px_60px_rgba(0,179,134,0.35)] group flex flex-col relative overflow-hidden cursor-pointer backdrop-blur-md"
+          >
+            <div className="absolute top-0 right-0 w-36 h-36 bg-[#00B386]/10 rounded-bl-full -mr-8 -mt-8 transition-all duration-500 group-hover:scale-150 group-hover:bg-[#00B386]/30 pointer-events-none"></div>
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-zinc-200 group-hover:text-white bg-white/10 mb-8 group-hover:bg-[#00B386] group-hover:shadow-[0_0_25px_rgba(0,179,134,0.6)] transition-all duration-300 transform group-hover:scale-110">
               <FileText size={28} />
             </div>
-            <h3 className="text-2xl font-bold text-white mb-3">Resume ATS Scoring</h3>
-            <p className="text-zinc-400 leading-relaxed mb-8 flex-1">
+            <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-[#33bb9a] transition-colors">Resume ATS Scoring</h3>
+            <p className="text-zinc-400 leading-relaxed mb-8 flex-1 group-hover:text-zinc-200 transition-colors">
               Upload your resume and get detailed ATS compatibility analysis, keyword optimization recommendations, and industry benchmarks.
             </p>
-            <Link to="/resume" className="inline-flex items-center gap-2 text-[#00B386] font-semibold hover:gap-3 transition-all text-sm">
-              Analyze Resume <ArrowRight size={16} />
+            <Link to="/resume" className="inline-flex items-center gap-2 text-[#00B386] font-bold group-hover:gap-3 transition-all text-sm group-hover:text-[#33bb9a]">
+              <span>Analyze Resume</span>
+              <ArrowRight size={16} className="transform group-hover:translate-x-1.5 transition-transform" />
             </Link>
-          </div>
+          </motion.div>
 
-          <div className="bg-[#111] border border-white/5 rounded-2xl p-8 hover:border-[#00B386]/30 transition-all duration-300 group flex flex-col relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-[#00B386]/5 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-150 duration-500"></div>
-            <div className="w-14 h-14 rounded-xl flex items-center justify-center text-zinc-400 group-hover:text-[#33bb9a] bg-white/5 mb-8 group-hover:bg-[#00B386]/10 transition-colors">
+          <motion.div 
+            whileHover={{ y: -14, scale: 1.03 }}
+            transition={{ type: "spring", stiffness: 350, damping: 22 }}
+            className="bg-zinc-900/60 border border-white/15 rounded-3xl p-8 hover:border-[#00B386] hover:bg-zinc-900/90 hover:shadow-[0_25px_60px_rgba(0,179,134,0.35)] group flex flex-col relative overflow-hidden cursor-pointer backdrop-blur-md"
+          >
+            <div className="absolute top-0 right-0 w-36 h-36 bg-[#00B386]/10 rounded-bl-full -mr-8 -mt-8 transition-all duration-500 group-hover:scale-150 group-hover:bg-[#00B386]/30 pointer-events-none"></div>
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-zinc-200 group-hover:text-white bg-white/10 mb-8 group-hover:bg-[#00B386] group-hover:shadow-[0_0_25px_rgba(0,179,134,0.6)] transition-all duration-300 transform group-hover:scale-110">
               <Target size={28} />
             </div>
-            <h3 className="text-2xl font-bold text-white mb-3">Company Roadmaps</h3>
-            <p className="text-zinc-400 leading-relaxed mb-8 flex-1">
+            <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-[#33bb9a] transition-colors">Company Roadmaps</h3>
+            <p className="text-zinc-400 leading-relaxed mb-8 flex-1 group-hover:text-zinc-200 transition-colors">
               Access company-specific interview preparation guides for top tech companies. Know what to expect and study efficiently.
             </p>
-            <Link to="/companies" className="inline-flex items-center gap-2 text-[#00B386] font-semibold hover:gap-3 transition-all text-sm">
-              Explore Roadmaps <ArrowRight size={16} />
+            <Link to="/companies" className="inline-flex items-center gap-2 text-[#00B386] font-bold group-hover:gap-3 transition-all text-sm group-hover:text-[#33bb9a]">
+              <span>Explore Roadmaps</span>
+              <ArrowRight size={16} className="transform group-hover:translate-x-1.5 transition-transform" />
             </Link>
-          </div>
+          </motion.div>
 
-          <div className="bg-[#111] border border-white/5 rounded-2xl p-8 hover:border-[#00B386]/30 transition-all duration-300 group flex flex-col relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-[#00B386]/5 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-150 duration-500"></div>
-            <div className="w-14 h-14 rounded-xl flex items-center justify-center text-zinc-400 group-hover:text-[#33bb9a] bg-white/5 mb-8 group-hover:bg-[#00B386]/10 transition-colors">
+          <motion.div 
+            whileHover={{ y: -14, scale: 1.03 }}
+            transition={{ type: "spring", stiffness: 350, damping: 22 }}
+            className="bg-zinc-900/60 border border-white/15 rounded-3xl p-8 hover:border-[#00B386] hover:bg-zinc-900/90 hover:shadow-[0_25px_60px_rgba(0,179,134,0.35)] group flex flex-col relative overflow-hidden cursor-pointer backdrop-blur-md"
+          >
+            <div className="absolute top-0 right-0 w-36 h-36 bg-[#00B386]/10 rounded-bl-full -mr-8 -mt-8 transition-all duration-500 group-hover:scale-150 group-hover:bg-[#00B386]/30 pointer-events-none"></div>
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-zinc-200 group-hover:text-white bg-white/10 mb-8 group-hover:bg-[#00B386] group-hover:shadow-[0_0_25px_rgba(0,179,134,0.6)] transition-all duration-300 transform group-hover:scale-110">
               <Zap size={28} />
             </div>
-            <h3 className="text-2xl font-bold text-white mb-3">AI Mock Interviews</h3>
-            <p className="text-zinc-400 leading-relaxed mb-8 flex-1">
+            <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-[#33bb9a] transition-colors">AI Mock Interviews</h3>
+            <p className="text-zinc-400 leading-relaxed mb-8 flex-1 group-hover:text-zinc-200 transition-colors">
               Practice 8-question structured mock interviews with AI. Get realistic feedback on your technical and behavioral responses.
             </p>
-            <Link to="/interviews" className="inline-flex items-center gap-2 text-[#00B386] font-semibold hover:gap-3 transition-all text-sm">
-              Start Interview <ArrowRight size={16} />
+            <Link to="/interviews" className="inline-flex items-center gap-2 text-[#00B386] font-bold group-hover:gap-3 transition-all text-sm group-hover:text-[#33bb9a]">
+              <span>Start Interview</span>
+              <ArrowRight size={16} className="transform group-hover:translate-x-1.5 transition-transform" />
             </Link>
-          </div>
+          </motion.div>
+
         </div>
       </section>
 
       <HowItWorksSection />
       <ProCTASection />
-      <Footer />
-        </BackgroundPaths>
+      
+      {/* Hero-1 Bottom Gradient Background */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-x-0 bottom-0 -z-10 transform-gpu overflow-hidden blur-3xl pointer-events-none"
+      >
+        <div
+          style={{
+            clipPath:
+              'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)',
+            background: 'linear-gradient(to top right, #00B386, #005540)'
+          }}
+          className="relative left-[calc(50%+3rem)] aspect-[1155/678] w-[36.125rem] max-w-none -translate-x-1/2 opacity-25 sm:left-[calc(50%+36rem)] sm:w-[72.1875rem]"
+        />
       </div>
-    </AnimatedShaderBackground>
+
+      <Footer />
+    </div>
   );
 };
 

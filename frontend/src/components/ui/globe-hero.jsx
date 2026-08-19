@@ -43,7 +43,7 @@ export const DotGlobeHero = React.forwardRef(({
     <div
       ref={ref}
       className={cn(
-        "relative w-full min-h-screen bg-zinc-950 overflow-hidden",
+        "relative w-full min-h-screen bg-transparent overflow-hidden",
         className
       )}
       {...props}
