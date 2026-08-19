@@ -4,9 +4,7 @@ import { ArrowRight, FileText, Target, Zap, Mail, MapPin, Star } from 'lucide-re
 import { motion } from 'framer-motion';
 import { AuthContext } from '../context/AuthContext';
 import AnimatedShaderBackground from '../components/ui/animated-shader-background';
-import { BackgroundPaths } from '../components/ui/background-paths';
-import { DotGlobeHero } from '../components/ui/globe-hero';
-import { HandwritingSvg } from '../components/ui/handwriting-svg';
+import { CareerPathHero } from '../components/ui/career-path-hero';
 import Logo from '../components/Logo';
 import './Landing.css';
 
@@ -157,10 +155,11 @@ const Landing = () => {
           />
         </div>
 
-        {/* Hero Section with Interactive 3D DotGlobeHero Background */}
-        <DotGlobeHero rotationSpeed={0.004} globeRadius={1.2} className="bg-transparent border-b border-white/5">
+        {/* Hero Section with Upward-Growth Career Trajectory Motif */}
+        <CareerPathHero className="bg-transparent border-b border-white/5">
           <div className="pt-24 pb-16 px-4 flex flex-col items-center justify-center text-center max-w-4xl mx-auto z-10">
-                    {/* Badge with Red Pulsing Live Dot */}
+        
+            {/* Badge with Red Pulsing Live Dot */}
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -174,7 +173,7 @@ const Landing = () => {
               <span>Career Preparation Platform</span>
             </motion.div>
 
-            {/* Heading matching design prompt */}
+            {/* Typography Consistency: Headline & Username share the exact same font family & weight */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -185,22 +184,20 @@ const Landing = () => {
                 Welcome Back,
               </h1>
 
-              <div className="flex justify-center items-center overflow-visible py-1 w-full">
-                <HandwritingSvg
-                  text={displayName}
-                  fontSize={48}
-                  strokeWidth={2.5}
-                  duration={2.5}
-                  className="text-[#00B386]"
-                />
+              {/* Color Hierarchy: Left-to-right gradient from #10b981 to #e0fff4 as main focal point */}
+              <div className="text-5xl md:text-7xl font-extrabold tracking-tight font-sans mt-2 mb-2">
+                <span className="bg-gradient-to-r from-[#10b981] to-[#e0fff4] bg-clip-text text-transparent drop-shadow-[0_0_35px_rgba(16,185,129,0.35)]">
+                  {displayName}
+                </span>
               </div>
             </motion.div>
             
+            {/* Color Hierarchy: Muted tagline at 80% opacity in #5eead4 */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.3 }}
-              className="mt-6 text-sm md:text-base font-semibold text-[#00B386] tracking-widest uppercase text-center"
+              className="mt-6 text-sm md:text-base font-semibold text-[#5eead4]/80 tracking-widest uppercase text-center font-sans"
             >
               From Resume to Offer Letter
             </motion.div>
@@ -214,13 +211,14 @@ const Landing = () => {
               {user ? "Ready to continue your placement preparation journey? Head over to your dashboard tools." : "CrackNest analyzes your resume, builds personalized roadmaps, and prepares you for top tech companies with interactive mock interviews and coding challenges."}
             </motion.p>
 
+            {/* Buttons: Subtle vertical gradient (#10b981 to #0d9488) on Go to Tools button */}
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
               className="mt-10 flex gap-4 z-50 relative"
             >
-              <Link to={user ? "/resume" : "/register"} className="btn btn-primary px-8 py-4 bg-[#009973] hover:bg-[#00B386] text-white rounded-full font-semibold transition-all shadow-lg shadow-[#009973]/20 flex items-center gap-2 cursor-pointer">
+              <Link to={user ? "/resume" : "/register"} className="btn btn-primary px-8 py-4 bg-gradient-to-b from-[#10b981] to-[#0d9488] hover:from-[#10b981] hover:to-[#10b981] text-white rounded-full font-semibold transition-all shadow-lg shadow-[#10b981]/25 flex items-center gap-2 cursor-pointer border border-[#10b981]/30">
                 {user ? "Go to Tools" : "Start for Free"} <ArrowRight size={18} />
               </Link>
               <Link to="/pricing" className="btn btn-secondary px-8 py-4 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-full font-semibold transition-all cursor-pointer">
@@ -228,8 +226,35 @@ const Landing = () => {
               </Link>
             </motion.div>
 
+            {/* Trust / Stats Bar */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className="mt-14 w-full max-w-4xl bg-zinc-900/40 border border-white/10 backdrop-blur-md rounded-2xl p-6 shadow-xl relative z-10"
+            >
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 divide-y md:divide-y-0 md:divide-x divide-white/10">
+                <div className="flex flex-col items-center justify-center p-2">
+                  <span className="text-2xl md:text-3xl font-extrabold text-[#10b981] tracking-tight font-sans">10,000+</span>
+                  <span className="text-xs md:text-sm text-zinc-400 font-medium mt-1">Resumes Analyzed</span>
+                </div>
+                <div className="flex flex-col items-center justify-center p-2 pt-4 md:pt-2">
+                  <span className="text-2xl md:text-3xl font-extrabold text-[#10b981] tracking-tight font-sans">25,000+</span>
+                  <span className="text-xs md:text-sm text-zinc-400 font-medium mt-1">Mock Interviews</span>
+                </div>
+                <div className="flex flex-col items-center justify-center p-2 pt-4 md:pt-2">
+                  <span className="text-2xl md:text-3xl font-extrabold text-[#10b981] tracking-tight font-sans">500+</span>
+                  <span className="text-xs md:text-sm text-zinc-400 font-medium mt-1">Companies Covered</span>
+                </div>
+                <div className="flex flex-col items-center justify-center p-2 pt-4 md:pt-2">
+                  <span className="text-2xl md:text-3xl font-extrabold text-[#10b981] tracking-tight font-sans">15,000+</span>
+                  <span className="text-xs md:text-sm text-zinc-400 font-medium mt-1">Roadmaps Generated</span>
+                </div>
+              </div>
+            </motion.div>
+
           </div>
-        </DotGlobeHero>
+        </CareerPathHero>
 
         {/* Features Section */}
         <section className="container mx-auto px-4 py-24 relative z-10 bg-transparent">
