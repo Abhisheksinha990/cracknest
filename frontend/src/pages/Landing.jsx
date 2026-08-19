@@ -160,12 +160,11 @@ const Landing = () => {
         {/* Hero Section with Interactive 3D DotGlobeHero Background */}
         <DotGlobeHero rotationSpeed={0.004} globeRadius={1.2} className="bg-transparent border-b border-white/5">
           <div className="pt-24 pb-16 px-4 flex flex-col items-center justify-center text-center max-w-4xl mx-auto z-10">
-        
-            {/* Badge with Red Pulsing Live Dot */}
+                    {/* Badge with Red Pulsing Live Dot */}
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
+              initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6 }}
+              transition={{ duration: 0.2 }}
               className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 font-semibold text-xs uppercase tracking-widest mb-6 shadow-xl backdrop-blur-md"
             >
               <span className="relative flex h-2 w-2">
@@ -177,9 +176,9 @@ const Landing = () => {
 
             {/* Heading matching design prompt */}
             <motion.div
-              initial={{ opacity: 0.5, y: 30 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.8, ease: "easeInOut" }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
               className="flex flex-col items-center text-center"
             >
               <h1 className="text-5xl font-extrabold tracking-tight text-white md:text-7xl leading-none mb-2 font-sans">
@@ -192,7 +191,6 @@ const Landing = () => {
                   fontSize={48}
                   strokeWidth={2.5}
                   duration={2.5}
-                  delay={0.3}
                   className="text-[#00B386]"
                 />
               </div>
@@ -201,7 +199,7 @@ const Landing = () => {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.5, duration: 0.8 }}
+              transition={{ duration: 0.3 }}
               className="mt-6 text-sm md:text-base font-semibold text-[#00B386] tracking-widest uppercase text-center"
             >
               From Resume to Offer Letter
@@ -210,16 +208,16 @@ const Landing = () => {
             <motion.p 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.6, duration: 0.8 }}
+              transition={{ duration: 0.3 }}
               className="mt-4 max-w-2xl text-center text-zinc-400 text-base md:text-lg font-medium leading-relaxed"
             >
               {user ? "Ready to continue your placement preparation journey? Head over to your dashboard tools." : "CrackNest analyzes your resume, builds personalized roadmaps, and prepares you for top tech companies with interactive mock interviews and coding challenges."}
             </motion.p>
 
             <motion.div 
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8, duration: 0.8 }}
+              transition={{ duration: 0.3 }}
               className="mt-10 flex gap-4 z-50 relative"
             >
               <Link to={user ? "/resume" : "/register"} className="btn btn-primary px-8 py-4 bg-[#009973] hover:bg-[#00B386] text-white rounded-full font-semibold transition-all shadow-lg shadow-[#009973]/20 flex items-center gap-2 cursor-pointer">
